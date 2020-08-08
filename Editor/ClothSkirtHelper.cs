@@ -60,7 +60,7 @@ namespace EsnyaFactory {
 
     void OnGUI()
     {
-      titleContent = new GUIContent("Cloth Helper");
+      titleContent = new GUIContent("Cloth Skirt Helper");
 
       avatarAnimator = EditorGUILayout.ObjectField("Avatar", avatarAnimator, typeof(Animator), true) as Animator;
       cloth = EditorGUILayout.ObjectField("Cloth", cloth, typeof(Cloth), true) as Cloth;
