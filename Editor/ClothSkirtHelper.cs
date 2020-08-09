@@ -65,6 +65,8 @@ namespace EsnyaFactory {
     float constraintBlending = 0.0f;
     float constraintBias = 0.05f;
 
+    bool createColliderObject = false;
+
     void OnGUI()
     {
       titleContent = new GUIContent("Cloth Skirt Helper");
@@ -98,6 +100,7 @@ namespace EsnyaFactory {
       applyRecommendedParameters  = EditorGUILayout.Toggle("Apply Recommended Parameters", applyRecommendedParameters);
       removeRootBone  = EditorGUILayout.Toggle("Remove Root Bone", removeRootBone);
       lowerLegColliders  = EditorGUILayout.Toggle("Lower Leg Colliders", lowerLegColliders);
+      createColliderObject = EditorGUILayout.Toggle("Create Collider Object", createColliderObject);
       initialColliderRadius  = EditorGUILayout.FloatField("Initial Colldier Radius", initialColliderRadius);
       fixedHeight  = EditorGUILayout.FloatField("Fixed Height", fixedHeight);
       EditorGUILayout.EndVertical();
@@ -111,7 +114,7 @@ namespace EsnyaFactory {
 
       if (advancedMode) {
         EditorGUILayout.BeginVertical(GUI.skin.box);
-        fillConstraints = advancedMode ? EditorGUILayout.Toggle("Fill Constraints", fillConstraints) : false;
+        fillConstraints = EditorGUILayout.Toggle("Fill Constraints", fillConstraints);
         if (fillConstraints) {
           EditorGUILayout.BeginVertical(GUI.skin.box);
           EditorGUILayout.LabelField("Loose Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
@@ -129,6 +132,7 @@ namespace EsnyaFactory {
         EditorGUILayout.EndVertical();
       } else {
         fillConstraints = false;
+        createColliderObject = false;
       }
       EditorGUILayout.EndVertical();
 
@@ -180,17 +184,41 @@ namespace EsnyaFactory {
       return !isFoot || lowerLegColliders;
     }
 
+    Transform GetColliderObject(int index)
+    {
+      var bone = bones[index];
+      if (!createColliderObject) {
+        return bone;
+      }
+
+      var boneId = boneIds[index];
+      var name = $"SkirtCollider_{boneId}";
+      var existing = bone.Find(name);
+      if (existing) {
+        return existing;
+      }
+
+      var colliderObject = new GameObject(name);
+      Undo.RegisterCreatedObjectUndo(colliderObject, "Create Collider GameObject");
+      colliderObject.transform.SetParent(bone);
+      colliderObject.transform.localPosition = Vector3.zero;
+      colliderObject.transform.localRotation = Quaternion.identity;
+      colliderObject.transform.localScale = Vector3.one;
+
+      return colliderObject.transform;
+    }
+
     void AddColliders()
     {
       for (int i = 0; i < bones.Length; i++) {
         var boneId = boneIds[i];
-        var bone = bones[i];
         if (CheckColliderEnabled(boneId)) {
-          foreach (var existingCollider in bone.GetComponents<Collider>()) {
+          var colliderObject = GetColliderObject(i);
+          foreach (var existingCollider in colliderObject.GetComponents<Collider>()) {
             DestroyImmediate(existingCollider);
           }
 
-          var collider = bone.gameObject.AddComponent<SphereCollider>();
+          var collider = colliderObject.gameObject.AddComponent<SphereCollider>();
           collider.isTrigger = true;
           collider.radius = initialColliderRadius;
         }
@@ -210,8 +238,8 @@ namespace EsnyaFactory {
           var firstIndex = GetIndexById(idPair[0]);
           var secondIndex = GetIndexById(idPair[1]);
           var pair = new ClothSphereColliderPair(
-            bones[firstIndex].GetComponent<SphereCollider>(),
-            bones[secondIndex].GetComponent<SphereCollider>()
+            GetColliderObject(firstIndex).GetComponent<SphereCollider>(),
+            GetColliderObject(secondIndex).GetComponent<SphereCollider>()
           );
           list.Add(pair);
         }
