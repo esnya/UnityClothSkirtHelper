@@ -51,6 +51,7 @@ namespace EsnyaFactory {
 
     bool removeRootBone = false;
     bool lowerLegColliders = false;
+    bool createColliderObject = false;
     float initialColliderRadius = 0.04f;
     bool applyRecommendedParameters = true;
     float fixedHeight = 0.1f;
@@ -65,7 +66,8 @@ namespace EsnyaFactory {
     float constraintBlending = 0.0f;
     float constraintBias = 0.05f;
 
-    bool createColliderObject = false;
+    bool autoCollider = false;
+    Renderer lowerBodyObject = null;
 
     void OnGUI()
     {
@@ -128,11 +130,23 @@ namespace EsnyaFactory {
           EditorGUILayout.EndVertical();
 
           constraintBlending = EditorGUILayout.Slider("Loose <-> Hard", constraintBlending, 0.0f, 1.0f);
+
         }
         EditorGUILayout.EndVertical();
+
+
+        // EditorGUILayout.BeginVertical(GUI.skin.box);
+        // autoCollider = EditorGUILayout.Toggle("Auto Collider", autoCollider);
+        // if (autoCollider) {
+        //   lowerBodyObject = EditorGUILayout.ObjectField("Lower Body Object", lowerBodyObject, typeof(Renderer), true) as Renderer;
+        //   if (lowerBodyObject && GUILayout.Button("Execute")) {
+        //     AutoCollider();
+        //   }
+        // }
+        // EditorGUILayout.EndVertical();
       } else {
         fillConstraints = false;
-        createColliderObject = false;
+        autoCollider = false;
       }
       EditorGUILayout.EndVertical();
 
@@ -338,6 +352,27 @@ namespace EsnyaFactory {
       } finally {
         isRunning = false;
       }
+    }
+
+    void AutoCollider()
+    {
+      var prevState = new Dictionary<Renderer, bool>();
+      avatarAnimator.transform.GetComponentsInChildren<Renderer>().ToList().ForEach(renderer => {
+        prevState[renderer] = renderer.enabled;
+        renderer.enabled = renderer == lowerBodyObject;
+      });
+
+      // var frontCamera = new Camera();
+      // frontCamera.transform.SetParent(bones[GetIndexById(HumanBodyBones.Hips)]);
+      // frontCamera.transform.Reset();
+      // frontCamera.transform.localPosition = new Vector3(0, 0, -1);
+      // await Task.Delay(delay);
+      // frontCamera.orthographic = true;
+      // DeleteImmediate(frontCamera);
+
+      avatarAnimator.transform.GetComponentsInChildren<Renderer>().ToList().ForEach(renderer => {
+        renderer.enabled = prevState[renderer];
+      });
     }
   }
 }
