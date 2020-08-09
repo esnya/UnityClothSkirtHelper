@@ -58,6 +58,13 @@ namespace EsnyaFactory {
     bool isRunning = false;
     int delay = 1000;
 
+    bool advancedMode = false;
+    bool fillConstraints = false;
+    float waistRadius = 0.18f;
+    float spreadAngle = 30.0f;
+    float constraintBlending = 0.0f;
+    float constraintBias = 0.05f;
+
     void OnGUI()
     {
       titleContent = new GUIContent("Cloth Skirt Helper");
@@ -67,6 +74,8 @@ namespace EsnyaFactory {
 
       EditorGUILayout.Space();
 
+      EditorGUILayout.BeginVertical(GUI.skin.box);
+      EditorGUILayout.LabelField("Bones", new GUIStyle(){ fontStyle = FontStyle.Bold });
       if (bones == null || bones.Length != boneIds.Length) {
         bones = new Transform[boneIds.Length];
       }
@@ -80,16 +89,66 @@ namespace EsnyaFactory {
         AutoDetectBones();
       }
       EditorGUI.EndDisabledGroup();
+      EditorGUILayout.EndVertical();
 
       EditorGUILayout.Space();
 
+      EditorGUILayout.BeginVertical(GUI.skin.box);
+      EditorGUILayout.LabelField("Basic Options", new GUIStyle(){ fontStyle = FontStyle.Bold });
       applyRecommendedParameters  = EditorGUILayout.Toggle("Apply Recommended Parameters", applyRecommendedParameters);
       removeRootBone  = EditorGUILayout.Toggle("Remove Root Bone", removeRootBone);
       lowerLegColliders  = EditorGUILayout.Toggle("Lower Leg Colliders", lowerLegColliders);
       initialColliderRadius  = EditorGUILayout.FloatField("Initial Colldier Radius", initialColliderRadius);
       fixedHeight  = EditorGUILayout.FloatField("Fixed Height", fixedHeight);
+      EditorGUILayout.EndVertical();
 
-      EditorGUI.BeginDisabledGroup(avatarAnimator == null || cloth == null || bones.Any(a => a == null) || isRunning);
+      EditorGUILayout.Space();
+
+      EditorGUILayout.BeginVertical(GUI.skin.box);
+      advancedMode = EditorGUILayout.Toggle("Advanced Mode", advancedMode);
+
+      delay = advancedMode ? EditorGUILayout.IntField("Editor Delay (ms)", delay) : 1000;
+
+      if (advancedMode) {
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        fillConstraints = advancedMode ? EditorGUILayout.Toggle("Fill Constraints", fillConstraints) : false;
+        if (fillConstraints) {
+          EditorGUILayout.BeginVertical(GUI.skin.box);
+          EditorGUILayout.LabelField("Loose Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
+          waistRadius = EditorGUILayout.FloatField("Waist Radius", waistRadius);
+          spreadAngle = EditorGUILayout.Slider("Spread Angle", spreadAngle, 0.0f, 90.0f);
+          EditorGUILayout.EndVertical();
+
+          EditorGUILayout.BeginVertical(GUI.skin.box);
+          EditorGUILayout.LabelField("Hard Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
+          constraintBias = EditorGUILayout.FloatField("Hard Constraint Bias", constraintBias);
+          EditorGUILayout.EndVertical();
+
+          constraintBlending = EditorGUILayout.Slider("Loose <-> Hard", constraintBlending, 0.0f, 1.0f);
+        }
+        EditorGUILayout.EndVertical();
+      } else {
+        fillConstraints = false;
+      }
+      EditorGUILayout.EndVertical();
+
+      var scaleDiff = cloth.transform.localScale - Vector3.one;
+      var scaleInvalid = Mathf.Max(Mathf.Abs(scaleDiff.x), Mathf.Abs(scaleDiff.y), Mathf.Abs(scaleDiff.z)) > 0.01f;
+
+      if (scaleInvalid) {
+        EditorGUILayout.Space();
+        EditorGUILayout.BeginVertical(GUI.skin.box);
+        EditorGUILayout.LabelField("Error", new GUIStyle() { fontStyle = FontStyle.Bold });
+        EditorGUILayout.LabelField("Scale of cloth object must be (1, 1, 1)");
+        if (GUILayout.Button("Auto Fix")) {
+          cloth.transform.localScale = Vector3.one;
+        }
+        EditorGUILayout.EndVertical();
+      }
+
+      EditorGUILayout.Space();
+
+      EditorGUI.BeginDisabledGroup(avatarAnimator == null || cloth == null || bones.Any(a => a == null) || isRunning || scaleInvalid);
       if (GUILayout.Button(isRunning ? "Setup is running" : "Setup")) {
         Setup();
       }
@@ -160,6 +219,34 @@ namespace EsnyaFactory {
       cloth.sphereColliders = list.ToArray();
     }
 
+    ClothSkinningCoefficient ComputeCoefficient(Vector3 vertex, Matrix4x4 localToWorld, float fixedLimit)
+    {
+      var worldPosition = localToWorld.MultiplyVector(vertex);
+
+      var coefficient = new ClothSkinningCoefficient();
+      coefficient.collisionSphereDistance = float.MaxValue;
+
+      if (fillConstraints) {
+        if (worldPosition.y >= fixedLimit) {
+          coefficient.maxDistance = 0;
+        } else {
+          var h = Mathf.Abs(fixedLimit - worldPosition.y);
+          var r = h * Mathf.Sin(spreadAngle * Mathf.Deg2Rad);
+          var looseDistance = r + waistRadius;
+          var hardDistance = Mathf.Max(new Vector3(worldPosition.x, 0, worldPosition.z).magnitude - constraintBias, 0);
+          coefficient.maxDistance = Mathf.Lerp(looseDistance, hardDistance, constraintBlending);
+        }
+      } else {
+        if (worldPosition.y >= fixedLimit) {
+          coefficient.maxDistance = 0;
+        } else {
+          coefficient.maxDistance = float.MaxValue;
+        }
+      }
+
+      return coefficient;
+    }
+
     async Task SetupMaxDistance()
     {
       var clothRender = GetClothRenderer();
@@ -169,24 +256,9 @@ namespace EsnyaFactory {
       await Task.Delay(delay);
       var hipsY = bones[GetIndexById(HumanBodyBones.Hips)].position.y;
       var fixedLimit = hipsY - fixedHeight;
+      var localToWorld = cloth.transform.localToWorldMatrix;
 
-      var matrix = cloth.transform.localToWorldMatrix;
-
-      cloth.coefficients = cloth.vertices.Select(vertex => {
-        var coefficient = new ClothSkinningCoefficient();
-
-        var worldPosition = matrix.MultiplyVector(vertex);
-
-        if (worldPosition.y >= fixedLimit) {
-          coefficient.maxDistance = 0;
-        } else {
-          coefficient.maxDistance = float.MaxValue;
-        }
-
-        coefficient.collisionSphereDistance = float.MaxValue;
-
-        return coefficient;
-      }).ToArray();
+      cloth.coefficients = cloth.vertices.Select(vertex => ComputeCoefficient(vertex, localToWorld, fixedLimit)).ToArray();
 
       await Task.Delay(delay);
       clothRender.rootBone = rootBone;
