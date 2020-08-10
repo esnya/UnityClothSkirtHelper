@@ -72,9 +72,6 @@ namespace EsnyaFactory {
     float constraintBlending = 0.0f;
     float constraintBias = 0.05f;
 
-    bool autoCollider = false;
-    Renderer lowerBodyObject = null;
-
     void OnGUI()
     {
       titleContent = new GUIContent("Cloth Skirt Helper");
@@ -139,24 +136,12 @@ namespace EsnyaFactory {
 
         }
         EditorGUILayout.EndVertical();
-
-
-        // EditorGUILayout.BeginVertical(GUI.skin.box);
-        // autoCollider = EditorGUILayout.Toggle("Auto Collider", autoCollider);
-        // if (autoCollider) {
-        //   lowerBodyObject = EditorGUILayout.ObjectField("Lower Body Object", lowerBodyObject, typeof(Renderer), true) as Renderer;
-        //   if (lowerBodyObject && GUILayout.Button("Execute")) {
-        //     AutoCollider();
-        //   }
-        // }
-        // EditorGUILayout.EndVertical();
       } else {
         fillConstraints = false;
-        autoCollider = false;
       }
       EditorGUILayout.EndVertical();
 
-      var scaleDiff = cloth.transform.localScale - Vector3.one;
+      var scaleDiff = cloth != null ? cloth.transform.localScale - Vector3.one : Vector3.zero;
       var scaleInvalid = Mathf.Max(Mathf.Abs(scaleDiff.x), Mathf.Abs(scaleDiff.y), Mathf.Abs(scaleDiff.z)) > 0.01f;
 
       if (scaleInvalid) {
@@ -271,9 +256,9 @@ namespace EsnyaFactory {
       cloth.sphereColliders = list.ToArray();
     }
 
-    ClothSkinningCoefficient ComputeCoefficient(Vector3 vertex, Matrix4x4 localToWorld, float fixedLimit)
+    ClothSkinningCoefficient ComputeCoefficient(Vector3 vertex, float fixedLimit)
     {
-      var worldPosition = localToWorld.MultiplyVector(vertex);
+      var worldPosition = cloth.transform.TransformPoint(vertex.x, vertex.y, vertex.z);
 
       var coefficient = new ClothSkinningCoefficient();
       coefficient.collisionSphereDistance = float.MaxValue;
@@ -308,9 +293,8 @@ namespace EsnyaFactory {
       await Task.Delay(delay);
       var hipsY = bones[GetIndexById(HumanBodyBones.Hips)].position.y;
       var fixedLimit = hipsY - fixedHeight;
-      var localToWorld = cloth.transform.localToWorldMatrix;
 
-      cloth.coefficients = cloth.vertices.Select(vertex => ComputeCoefficient(vertex, localToWorld, fixedLimit)).ToArray();
+      cloth.coefficients = cloth.vertices.Select(vertex => ComputeCoefficient(vertex, fixedLimit)).ToArray();
 
       await Task.Delay(delay);
       clothRender.rootBone = rootBone;
@@ -338,7 +322,6 @@ namespace EsnyaFactory {
     {
       try {
         isRunning = true;
-        Repaint();
 
         await Reselect();
 
@@ -364,27 +347,6 @@ namespace EsnyaFactory {
       } finally {
         isRunning = false;
       }
-    }
-
-    void AutoCollider()
-    {
-      var prevState = new Dictionary<Renderer, bool>();
-      avatarAnimator.transform.GetComponentsInChildren<Renderer>().ToList().ForEach(renderer => {
-        prevState[renderer] = renderer.enabled;
-        renderer.enabled = renderer == lowerBodyObject;
-      });
-
-      // var frontCamera = new Camera();
-      // frontCamera.transform.SetParent(bones[GetIndexById(HumanBodyBones.Hips)]);
-      // frontCamera.transform.Reset();
-      // frontCamera.transform.localPosition = new Vector3(0, 0, -1);
-      // await Task.Delay(delay);
-      // frontCamera.orthographic = true;
-      // DeleteImmediate(frontCamera);
-
-      avatarAnimator.transform.GetComponentsInChildren<Renderer>().ToList().ForEach(renderer => {
-        renderer.enabled = prevState[renderer];
-      });
     }
   }
 }
