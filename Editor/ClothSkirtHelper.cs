@@ -26,6 +26,12 @@ namespace EsnyaFactory {
       }
     }
 
+    public enum ColliderMode {
+      AttachToBone,
+      CreateNewObject,
+      None,
+    }
+
     Animator avatarAnimator;
     Cloth cloth;
 
@@ -51,7 +57,7 @@ namespace EsnyaFactory {
 
     bool removeRootBone = false;
     bool lowerLegColliders = false;
-    bool createColliderObject = false;
+    ColliderMode colliderMode = ColliderMode.AttachToBone;
     float initialColliderRadius = 0.04f;
     bool applyRecommendedParameters = true;
     float fixedHeight = 0.1f;
@@ -102,7 +108,7 @@ namespace EsnyaFactory {
       applyRecommendedParameters  = EditorGUILayout.Toggle("Apply Recommended Parameters", applyRecommendedParameters);
       removeRootBone  = EditorGUILayout.Toggle("Remove Root Bone", removeRootBone);
       lowerLegColliders  = EditorGUILayout.Toggle("Lower Leg Colliders", lowerLegColliders);
-      createColliderObject = EditorGUILayout.Toggle("Create Collider Object", createColliderObject);
+      colliderMode = (ColliderMode)EditorGUILayout.EnumPopup("Collider Creation Mode", colliderMode);
       initialColliderRadius  = EditorGUILayout.FloatField("Initial Colldier Radius", initialColliderRadius);
       fixedHeight  = EditorGUILayout.FloatField("Fixed Height", fixedHeight);
       EditorGUILayout.EndVertical();
@@ -200,8 +206,12 @@ namespace EsnyaFactory {
 
     Transform GetColliderObject(int index)
     {
+      if (colliderMode == ColliderMode.None) {
+        return null;
+      }
+
       var bone = bones[index];
-      if (!createColliderObject) {
+      if (colliderMode == ColliderMode.AttachToBone) {
         return bone;
       }
 
@@ -334,13 +344,15 @@ namespace EsnyaFactory {
 
         cloth.ClearTransformMotion();
 
-        AddColliders();
+        if (colliderMode != ColliderMode.None) {
+          AddColliders();
+          SetupColliders();
+        }
 
         if (removeRootBone) {
           RemoveRootBone();
         }
 
-        SetupColliders();
 
         await SetupMaxDistance();
 
