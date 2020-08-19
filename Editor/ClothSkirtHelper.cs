@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace EsnyaFactory {
   public class ClothSkirtHelper : EditorWindow
   {
-    [MenuItem("EsnyaFactory/Cloth Skirt Helper")]
+    [MenuItem("EsnyaTools/Cloth Skirt Helper")]
     static void Init()
     {
         var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;

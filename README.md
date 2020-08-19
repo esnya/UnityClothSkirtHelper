@@ -4,5 +4,5 @@ UnityのClothコンポーネントを使ってスカートを作る作業を簡�
 ![Screenshot](Documents~/ss01.png)
 
 開き方
-* メニュー: EsnyaFactory > Cloth Skirt Helper
+* メニュー: EsnyaTools > Cloth Skirt Helper
 * Clothコンポーネント右クリック > Cloth Skirt Helper
