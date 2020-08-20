@@ -18,9 +18,13 @@ ClothコンポーネントはCloth化したいSkinned Mesh Rendererをもつオ�
 ### Mesh Cleaner
 Skinned Mesh RendererのMeshから使われていない頂点を削除します。
 
+## 更新履歴
+[CHANGELOG.md](CHANGELOG.md)
+
 ## バグ報告など
 オープンソース版は [GitHub Issues](issues) でのみIssueとPull Requestを受け付けます。
 その他サポートは有りません。
+
 
 ## ライセンス
 Mit License
