@@ -9,4 +9,4 @@ UnityのClothコンポーネントを使ってスカートを作る作業を簡�
 
 
 おまけツール：Mesh Cleaner
-SkinnedMeshRenderer　から使われていない頂点を削除する。
+SkinnedMeshRenderer から使われていない頂点を削除する。
