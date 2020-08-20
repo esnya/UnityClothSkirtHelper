@@ -29,6 +29,7 @@ namespace EsnyaFactory {
     public enum ColliderMode {
       AttachToBone,
       CreateNewObject,
+      ReadOnly,
       None,
     }
 
@@ -36,6 +37,7 @@ namespace EsnyaFactory {
     Cloth cloth;
 
     readonly HumanBodyBones[] boneIds = {
+      HumanBodyBones.Spine,
       HumanBodyBones.Hips,
       HumanBodyBones.LeftUpperLeg,
       HumanBodyBones.LeftLowerLeg,
@@ -45,6 +47,7 @@ namespace EsnyaFactory {
       HumanBodyBones.RightFoot,
     };
     readonly HumanBodyBones[][] colliderPairs = {
+      new HumanBodyBones[]{HumanBodyBones.Spine, HumanBodyBones.Hips},
       new HumanBodyBones[]{HumanBodyBones.Hips, HumanBodyBones.LeftUpperLeg},
       new HumanBodyBones[]{HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg},
       new HumanBodyBones[]{HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot},
@@ -57,6 +60,7 @@ namespace EsnyaFactory {
 
     bool removeRootBone = false;
     bool lowerLegColliders = false;
+    bool spineCollider = false;
     ColliderMode colliderMode = ColliderMode.AttachToBone;
     float initialColliderRadius = 0.04f;
     bool applyRecommendedParameters = true;
@@ -116,10 +120,12 @@ namespace EsnyaFactory {
       advancedMode = EditorGUILayout.Toggle("Advanced Mode", advancedMode);
 
       delay = advancedMode ? EditorGUILayout.IntField("Editor Delay (ms)", delay) : 1000;
+      spineCollider = advancedMode ? EditorGUILayout.Toggle("Spine Collider", spineCollider) : false;
 
       if (advancedMode) {
         EditorGUILayout.BeginVertical(GUI.skin.box);
         fillConstraints = EditorGUILayout.Toggle("Fill Constraints", fillConstraints);
+
         if (fillConstraints) {
           EditorGUILayout.BeginVertical(GUI.skin.box);
           EditorGUILayout.LabelField("Loose Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
@@ -133,7 +139,6 @@ namespace EsnyaFactory {
           EditorGUILayout.EndVertical();
 
           constraintBlending = EditorGUILayout.Slider("Loose <-> Hard", constraintBlending, 0.0f, 1.0f);
-
         }
         EditorGUILayout.EndVertical();
       } else {
@@ -157,7 +162,7 @@ namespace EsnyaFactory {
 
       EditorGUILayout.Space();
 
-      EditorGUI.BeginDisabledGroup(avatarAnimator == null || cloth == null || bones.Any(a => a == null) || isRunning || scaleInvalid);
+      EditorGUI.BeginDisabledGroup(avatarAnimator == null || cloth == null || bones.Select((t) => t != null).Any(a => !a) || isRunning || scaleInvalid);
       if (GUILayout.Button(isRunning ? "Setup is running" : "Setup")) {
         Setup();
       }
@@ -186,35 +191,31 @@ namespace EsnyaFactory {
     bool CheckColliderEnabled(HumanBodyBones boneId)
     {
       var isFoot = boneId == HumanBodyBones.LeftFoot || boneId == HumanBodyBones.RightFoot;
-      return !isFoot || lowerLegColliders;
+      return (!isFoot || lowerLegColliders) && (boneId != HumanBodyBones.Spine || spineCollider);
     }
 
     Transform GetColliderObject(int index)
     {
-      if (colliderMode == ColliderMode.None) {
-        return null;
-      }
-
-      var bone = bones[index];
-      if (colliderMode == ColliderMode.AttachToBone) {
-        return bone;
-      }
-
       var boneId = boneIds[index];
+      var bone = bones[index];
       var name = $"SkirtCollider_{boneId}";
       var existing = bone.Find(name);
-      if (existing) {
+      if (existing != null) {
         return existing;
       }
 
-      var colliderObject = new GameObject(name);
-      Undo.RegisterCreatedObjectUndo(colliderObject, "Create Collider GameObject");
-      colliderObject.transform.SetParent(bone);
-      colliderObject.transform.localPosition = Vector3.zero;
-      colliderObject.transform.localRotation = Quaternion.identity;
-      colliderObject.transform.localScale = Vector3.one;
+      if (colliderMode == ColliderMode.CreateNewObject) {
+        var colliderObject = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(colliderObject, "Create Collider GameObject");
+        colliderObject.transform.SetParent(bone);
+        colliderObject.transform.localPosition = Vector3.zero;
+        colliderObject.transform.localRotation = Quaternion.identity;
+        colliderObject.transform.localScale = Vector3.one;
 
-      return colliderObject.transform;
+        return colliderObject.transform;
+      }
+
+      return bone;
     }
 
     void AddColliders()
@@ -223,6 +224,7 @@ namespace EsnyaFactory {
         var boneId = boneIds[i];
         if (CheckColliderEnabled(boneId)) {
           var colliderObject = GetColliderObject(i);
+
           foreach (var existingCollider in colliderObject.GetComponents<Collider>()) {
             DestroyImmediate(existingCollider);
           }
@@ -244,11 +246,12 @@ namespace EsnyaFactory {
       var list = new List<ClothSphereColliderPair>();
       foreach (var idPair in colliderPairs) {
         if (CheckColliderEnabled(idPair[0]) && CheckColliderEnabled(idPair[1])) {
-          var firstIndex = GetIndexById(idPair[0]);
-          var secondIndex = GetIndexById(idPair[1]);
+          var first = GetColliderObject(GetIndexById(idPair[0]));
+          var second = GetColliderObject(GetIndexById(idPair[1]));
+
           var pair = new ClothSphereColliderPair(
-            GetColliderObject(firstIndex).GetComponent<SphereCollider>(),
-            GetColliderObject(secondIndex).GetComponent<SphereCollider>()
+            first.GetComponent<SphereCollider>(),
+            second.GetComponent<SphereCollider>()
           );
           list.Add(pair);
         }
@@ -320,32 +323,47 @@ namespace EsnyaFactory {
 
     async void Setup()
     {
+      int max = 8;
+      int now = 0;
       try {
         isRunning = true;
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Initializing", (float)(now++) / max);
 
         await Reselect();
 
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Initializing", (float)(now++) / max);
         cloth.ClearTransformMotion();
 
-        if (colliderMode != ColliderMode.None) {
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Collider Components", (float)(now++) / max);
+        if (colliderMode != ColliderMode.None && colliderMode != ColliderMode.ReadOnly) {
           AddColliders();
+        }
+
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Collider Pairs", (float)(now++) / max);
+        if (colliderMode != ColliderMode.None) {
           SetupColliders();
         }
 
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Root bone", (float)(now++) / max);
         if (removeRootBone) {
           RemoveRootBone();
         }
 
-
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Constraints", (float)(now++) / max);
         await SetupMaxDistance();
 
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Parameters", (float)(now++) / max);
         if (applyRecommendedParameters) {
           ApplyRecommendedParameters();
         }
 
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Finalizing", (float)(now++) / max);
         await Reselect();
+
+        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Done", (float)(now++) / max);
       } finally {
         isRunning = false;
+        EditorUtility.ClearProgressBar();
       }
     }
   }
