@@ -305,8 +305,8 @@ namespace EsnyaFactory {
 
     void ApplyRecommendedParameters()
     {
-      cloth.stretchingStiffness = 0.5f;
-      cloth.bendingStiffness = 0.5f;
+      cloth.stretchingStiffness = 0.8f;
+      cloth.bendingStiffness = 0.8f;
       cloth.damping = 0.2f;
       cloth.worldVelocityScale = 0.0f;
       cloth.worldAccelerationScale = 0.0f;
