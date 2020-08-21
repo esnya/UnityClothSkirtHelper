@@ -9,14 +9,14 @@ namespace EsnyaFactory {
   public class ClothSkirtHelper : EditorWindow
   {
     [MenuItem("EsnyaTools/Cloth Skirt Helper")]
-    static void Init()
+    public static void Init()
     {
         var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;
         window.Show();
     }
 
     [MenuItem("CONTEXT/Cloth/Cloth Skirt Helper")]
-    static void InitByAsset(MenuCommand menuCommand)
+    public static void InitByAsset(MenuCommand menuCommand)
     {
       var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;
       window.Show();

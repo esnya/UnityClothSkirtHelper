@@ -107,7 +107,7 @@ namespace EsnyaFactory {
       dstContainer.transform.localRotation = target.transform.localRotation;
       var renderer = dstContainer.AddComponent<SkinnedMeshRenderer>();
       renderer.bones = target.bones.ToArray();
-      renderer.materials = target.materials.ToArray();
+      renderer.sharedMaterials = target.sharedMaterials.ToArray();
       renderer.probeAnchor = target.probeAnchor;
       renderer.rootBone = target.rootBone;
       renderer.sharedMaterials = target.sharedMaterials;
