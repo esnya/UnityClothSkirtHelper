@@ -1,5 +1,13 @@
 # Changelog
 
+<a name="next"></a>
+## next
+
+### Miscellaneous
+
+- 📝 Update changelog [[311582b](https://github.com/esnya/UnityClothSkirtHelper/commit/311582b76fcba6085843af70acbc3cbb835634f6)]
+
+
 <a name="1.0.0"></a>
 ## 1.0.0 (2020-08-21)
 
