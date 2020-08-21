@@ -9,7 +9,7 @@
     "Unity",
     "Cloth"
   ],
-  "script": {
+  "scripts": {
     "version": "npx cross-var npx gitmoji-changelog $npm_package_version && git add CHANGELOG.md"
   },
   "author": "esnya",
