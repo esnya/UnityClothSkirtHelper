@@ -1,5 +1,18 @@
 # Changelog
 
+<a name="1.0.0"></a>
+## 1.0.0 (2020-08-21)
+
+### Changed
+
+- 🍱 Add Meta [[b9137b7](https://github.com/esnya/UnityClothSkirtHelper/commit/b9137b7278ffddc0f5129d541276c5d0e276787f)]
+
+### Miscellaneous
+
+-  1.0.0 [[fd764ac](https://github.com/esnya/UnityClothSkirtHelper/commit/fd764ac87455ba3a09f78dd9a458318ebe11584c)]
+- 📝 Update CHANGELOG [[4f0fd00](https://github.com/esnya/UnityClothSkirtHelper/commit/4f0fd00ab71117a2355d0ea3d28c7ecb86415e2e)]
+
+
 <a name="1.0.0-rc.1"></a>
 ## 1.0.0-rc.1 (2020-08-20)
 

@@ -10,7 +10,7 @@
     "Cloth"
   ],
   "script": {
-    "version": "npx gitmoji-changelog && git add CHANGELOG.md*"
+    "version": "npx gitmoji-changelog && git add CHANGELOG.md"
   },
   "author": "esnya",
   "license": "MIT",
