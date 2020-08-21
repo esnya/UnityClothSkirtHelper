@@ -9,6 +9,9 @@
     "Unity",
     "Cloth"
   ],
+  "script": {
+    "version": "npx gitmoji-changelog && git add CHANGELOG.md*"
+  },
   "author": "esnya",
   "license": "MIT",
   "private": true
