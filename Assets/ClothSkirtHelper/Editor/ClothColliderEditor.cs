@@ -48,6 +48,7 @@ namespace EsnyaFactory {
 
     private void OnEnable()
     {
+      titleContent = new GUIContent("Cloth Collider Editor");
     }
 
     private void OnGUI() {
