@@ -134,24 +134,25 @@ namespace EsnyaFactory.ClothSkirtHelper {
     }
 
     private (Vector3, Vector3, Vector3) Preprocess(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) {
-      var worldPosition = localPosition + core.avatar.transform.position;
-      var xz = Vector3.Scale(worldPosition - core.worldCenter, new Vector3(1, 0, 1));
+      return MeshUtility.Spreading(core.worldVertices, core.avatar.transform.position, core.center, localPosition, core.worldTop.y - fixedHeight, angle);
+      // var worldPosition = localPosition + core.avatar.transform.position;
+      // var xz = Vector3.Scale(worldPosition - core.worldCenter, new Vector3(1, 0, 1));
 
-      var nearestFixed = core.worldVertices
-        .Where(v => v.y > core.worldTop.y - fixedHeight)
-        .OrderBy(v => Vector3.Distance(worldPosition - core.worldCenter, Vector3.Scale(v - core.worldCenter, new Vector3(1, 1, 1))))
-        .First();
+      // var nearestFixed = core.worldVertices
+      //   .Where(v => v.y > core.worldTop.y - fixedHeight)
+      //   .OrderBy(v => Vector3.Distance(worldPosition - core.worldCenter, Vector3.Scale(v - core.worldCenter, new Vector3(1, 1, 1))))
+      //   .First();
 
-      var radius = Vector3.Scale(nearestFixed - core.worldCenter, new Vector3(1, 0, 1)).magnitude;
+      // var radius = Vector3.Scale(nearestFixed - core.worldCenter, new Vector3(1, 0, 1)).magnitude;
 
-      var dir = xz.normalized;
-      var from = core.worldTop + dir * radius - new Vector3(0, fixedHeight, 0);
-      var length = (worldPosition - from).magnitude;
+      // var dir = xz.normalized;
+      // var from = core.worldTop + dir * radius - new Vector3(0, fixedHeight, 0);
+      // var length = (worldPosition - from).magnitude;
 
-      var rad = angle * Mathf.Deg2Rad;
-      var to = from + dir * length * Mathf.Sin(rad) - new Vector3(0, length * Mathf.Cos(rad), 0);
+      // var rad = angle * Mathf.Deg2Rad;
+      // var to = from + dir * length * Mathf.Sin(rad) - new Vector3(0, length * Mathf.Cos(rad), 0);
 
-      return (worldPosition, from, to);
+      // return (worldPosition, from, to);
     }
 
     public override void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {

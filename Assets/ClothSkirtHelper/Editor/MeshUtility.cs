@@ -214,5 +214,29 @@ namespace EsnyaFactory.ClothSkirtHelper {
         }
       }
     }
+
+    public static (Vector3, Vector3, Vector3) Spreading(IEnumerable<Vector3> worldVertices, Vector3 offset, Vector3 xzCenter, Vector3 localPosition, float topY, float angle) {
+      var worldPosition = localPosition + offset;
+      var worldCenter = new Vector3(xzCenter.x, offset.y, xzCenter.y);
+      var xz = Vector3.Scale(worldPosition - worldCenter, new Vector3(1, 0, 1));
+      var worldTop = new Vector3(worldCenter.x, topY, worldCenter.z);
+
+      var nearestFixed = worldVertices
+        .Where(v => v.y > topY)
+        .OrderBy(v => Vector3.Distance(worldPosition - worldCenter, Vector3.Scale(v - worldCenter, new Vector3(1, 1, 1))))
+        .First();
+
+      var radius = Vector3.Scale(nearestFixed - worldCenter, new Vector3(1, 0, 1)).magnitude;
+
+      var dir = xz.normalized;
+      var from = worldTop + dir * radius;
+      var length = (worldPosition - from).magnitude;
+
+      var rad = angle * Mathf.Deg2Rad;
+      var to = from + dir * length * Mathf.Sin(rad) - new Vector3(0, length * Mathf.Cos(rad), 0);
+
+      return (worldPosition, from, to);
+    }
+
   }
 }

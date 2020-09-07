@@ -7,7 +7,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
   [Serializable]
   public class InsideDeleter : ToolBase {
-    public bool includeBoundary = true;
+    public bool includeBoundary = false;
 
     public SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory) {
       var originalMesh = skinnedMeshRenderer.sharedMesh;
@@ -38,5 +38,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public void OnGUI(SkinnedMeshRenderer skinnedMeshRenderer) {
       includeBoundary = EditorGUILayout.Toggle("Include Boundary", includeBoundary);
     }
+
+    public bool Validate() => true;
   }
 }

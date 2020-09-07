@@ -18,6 +18,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       new MeshExtractor(),
       new InsideDeleter(),
       new MeshCombiner(),
+      new MeshSpreadingDeformer(),
     };
 
     private void OnEnable()
@@ -53,8 +54,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
               EditorGUILayout.Space();
               tool.OnGUI(skinnedMeshRenderer);
               EditorGUILayout.Space();
-              if (GUILayout.Button("Execute")) {
-                skinnedMeshRenderer = tool.Execute(skinnedMeshRenderer, outputDirectory);
+
+              using (new EditorGUI.DisabledGroupScope(!tool.Validate())) {
+                if (GUILayout.Button("Execute")) {
+                  Undo.RecordObject(this, $"Execute {tool.GetType()}");
+                  skinnedMeshRenderer = tool.Execute(skinnedMeshRenderer, outputDirectory);
+                }
               }
             }
             EditorGUILayout.Space();

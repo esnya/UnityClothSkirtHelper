@@ -4,5 +4,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
   interface ToolBase {
     SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory);
     void OnGUI(SkinnedMeshRenderer skinnedMeshRenderer);
+
+    bool Validate();
   }
 }

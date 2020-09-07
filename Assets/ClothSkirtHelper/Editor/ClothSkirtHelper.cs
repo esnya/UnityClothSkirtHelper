@@ -57,7 +57,6 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
         EditorGUILayout.Space();
 
-
         EditorGUILayout.Space();
         colliderCreator.OnGUI(core);
         EditorGUILayout.Space();

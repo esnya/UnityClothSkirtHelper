@@ -13,11 +13,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     public SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory) {
       var originalMesh = skinnedMeshRenderer.sharedMesh;
+      var validColliders = colliders.Where(c => c != null).ToList();
 
       var skirtMesh = MeshUtility.ExtractMesh(
         skinnedMeshRenderer,
         (vertex, normal) => {
-          return colliders.Where(c => c != null).Any(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) < 0.001);
+          return validColliders.Count == 0 || validColliders.Any(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) < 0.001);
         },
         subMesh => subMeshFilters[subMesh],
         includeBoundary
@@ -25,7 +26,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       skirtMesh.name = $"{originalMesh.name}_skirt";
       var otherMesh = MeshUtility.ExtractMesh(
         skinnedMeshRenderer,
-        (vertex, normal) => colliders.Where(c => c != null).All(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) >= 0.001),
+        (vertex, normal) => validColliders.Count > 0 && validColliders.All(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) >= 0.001),
         subMesh => true,
         !includeBoundary
       );
@@ -59,7 +60,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       }
 
       using (new EditorGUILayout.HorizontalScope()) {
-        EditorGUILayout.LabelField("Filter by Collider");
+        EditorGUILayout.LabelField("Filter by Collider (Box, Sphere or Capsule)");
         if (GUILayout.Button("+", GUILayout.ExpandWidth(false))) colliders.Add(null);
       }
       using (new EditorGUI.IndentLevelScope()) {
@@ -76,5 +77,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
       includeBoundary = EditorGUILayout.Toggle("Include Boundary", includeBoundary);
     }
+
+    public bool Validate() => true;
   }
 }

@@ -70,5 +70,9 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public void OnGUI(SkinnedMeshRenderer skinnedMeshRenderer) {
       otherSkinnedMeshRenderer = EditorGUILayout.ObjectField("Skinned Mesh Renderer", otherSkinnedMeshRenderer, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
     }
+
+    public bool Validate() {
+      return otherSkinnedMeshRenderer != null;
+    }
   }
 }
