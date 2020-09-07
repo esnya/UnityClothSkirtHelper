@@ -111,6 +111,8 @@ namespace EsnyaFactory.ClothSkirtHelper {
     }
 
     public void Execute(ClothSkirtHelperCore core) {
+      if (!createColliders) return;
+
       var cloth = core.cloth;
       var avatar = core.avatar;
 
@@ -164,6 +166,16 @@ namespace EsnyaFactory.ClothSkirtHelper {
           return pairs.Select(a => new ClothSphereColliderPair(collider, a));
         })
         .ToArray();
+
+      cloth.sphereColliders
+        .SelectMany(p => new Collider[] { p.first, p.second })
+        .Concat(cloth.capsuleColliders)
+        .Where(c => c != null)
+        .Distinct()
+        .ToList()
+        .ForEach(c => {
+          c.isTrigger = true;
+        });
     }
   }
 }
