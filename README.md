@@ -14,7 +14,24 @@ Unityを開き、同梱の`ClothSkirtHelper-{VERSION}.unitypackage`をProjectウ
 ClothコンポーネントはCloth化したいSkinned Mesh Rendererをもつオブジェクトに手動で追加してください。
 メインウィンドウはClothコンポーネントの右クリックメニューからも開けます。
 
+オブジェクトのTransformはReset状態にしておくことを推奨します。
+
 ## おまけ
+### Skirt Mesh Tool
+Skinned Mesh RendererのMeshをClothスカート用に加工します。
+
+#### Mesh Extractor
+必要な部分を取り出します。
+
+#### Inside Deleter
+内側を削除します。
+
+#### Mesh Combiner
+ふたつのMeshを結合します。
+
+#### Mesh Spreading Deformer
+スカートを広げた形に変形します。
+
 ### Mesh Cleaner
 Skinned Mesh RendererのMeshから使われていない頂点を削除します。
 
