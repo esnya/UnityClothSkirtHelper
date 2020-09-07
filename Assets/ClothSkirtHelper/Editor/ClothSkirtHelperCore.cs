@@ -10,13 +10,33 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public SkinnedMeshRenderer skirt;
     public Animator avatar;
     public Dictionary<HumanBodyBones, Transform> bones = new Dictionary<HumanBodyBones, Transform>();
-    public Transform center;
+    public Transform xyCenter;
 
     public bool applyRecommendedParameters = true;
     public bool advancedMode = false;
 
     public Mesh mesh;
     public Cloth cloth;
+
+    public Vector3 center {
+      get => new Vector3(xyCenter.position.x, avatar.transform.position.y, xyCenter.position.z);
+    }
+
+    public Vector3 worldCenter {
+      get => mesh.bounds.center + center;
+    }
+
+    public Vector3 worldTop {
+      get => worldCenter + new Vector3(0, mesh.bounds.extents.y, 0);
+    }
+
+    public Vector3 worldBottom {
+      get => worldCenter + new Vector3(0, -mesh.bounds.extents.y, 0);
+    }
+
+    public IEnumerable<Vector3> worldVertices {
+      get => mesh.vertices.Distinct().Select(v => v + avatar.transform.position);
+    }
 
     public void OnEnable() {
       OnSkirtCanged();
@@ -32,12 +52,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
     private void OnAvatarChanged() {
       if (avatar == null) {
         bones.Clear();
-        center = null;
+        xyCenter = null;
       } else {
         bones = HumanoidUtility.boneIds
           .Select(boneId => new KeyValuePair<HumanBodyBones, Transform>(boneId, avatar.GetBoneTransform(boneId)))
           .ToDictionary(p => p.Key, p => p.Value);
-        center = bones[HumanBodyBones.Hips];
+        xyCenter = bones[HumanBodyBones.Hips];
       }
     }
 
@@ -85,9 +105,9 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
         var hips = bones.FirstOrDefault(p => p.Key == HumanBodyBones.Hips).Value;
         if (!advancedMode) {
-          center = hips;
+          xyCenter = hips;
         } else {
-          center = EditorGUILayout.ObjectField("XZ Center", center, typeof(Transform), true) as Transform ?? hips;
+          xyCenter = EditorGUILayout.ObjectField("XZ Center", xyCenter, typeof(Transform), true) as Transform ?? hips;
         }
       }
 

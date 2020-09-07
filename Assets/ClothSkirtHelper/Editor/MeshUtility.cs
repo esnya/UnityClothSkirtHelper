@@ -198,6 +198,8 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public static void MeshMetricsGUI(SkinnedMeshRenderer skinnedMeshRenderer) {
       if (skinnedMeshRenderer == null) return;
 
+      var clothVertexCount = skinnedMeshRenderer.sharedMesh.vertices.Distinct().Count();
+
       using (new EditorGUI.IndentLevelScope()) {
         EditorGUILayout.LabelField("Vertex Count", $"{skinnedMeshRenderer.sharedMesh.vertexCount}");
         using (new EditorGUI.IndentLevelScope()) {
@@ -205,27 +207,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
         }
         EditorGUILayout.LabelField("Polygon Count", $"{skinnedMeshRenderer.sharedMesh.triangles.Length / 3}");
         EditorGUILayout.LabelField("SubMesh Count", $"{skinnedMeshRenderer.sharedMesh.subMeshCount}");
-        EditorGUILayout.LabelField("Avatar Rank", GetClothAvatarRank(skinnedMeshRenderer.sharedMesh.vertexCount));
+
+        EditorGUILayout.LabelField("Cloth Vertex Count", $"{clothVertexCount}");
+        using (new EditorGUI.IndentLevelScope()) {
+          EditorGUILayout.LabelField("Avatar Rank", GetClothAvatarRank(clothVertexCount));
+        }
       }
-    }
-
-    public static Bounds GetBounds(SkinnedMeshRenderer skinnedMeshRenderer) {
-      var cloth = skinnedMeshRenderer.GetComponent<Cloth>();
-
-      var v0 = cloth.vertices.First();
-
-      var (min, max) = cloth.vertices.Skip(1).Aggregate(
-        (v0, v0),
-        (p, c) => (
-          Vector3.Min(p.Item1, c),
-          Vector3.Max(p.Item2, c)
-        )
-      );
-
-      return new Bounds(
-        skinnedMeshRenderer.bones.First().TransformPoint((max + min) * 0.5f),
-        max - min
-      );
     }
   }
 }

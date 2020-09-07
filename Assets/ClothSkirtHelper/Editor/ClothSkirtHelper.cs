@@ -82,7 +82,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
         }
 
         using (new EditorGUI.DisabledGroupScope(errors.Count != 0)) {
-          if (GUILayout.Button("Execute")) {
+          if (GUILayout.Button("Apply")) {
             Execute();
           }
         }

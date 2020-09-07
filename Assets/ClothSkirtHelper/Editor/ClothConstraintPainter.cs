@@ -18,8 +18,8 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public float height = 0.1f;
 
     public List<ClothConstraintAdvancedPainter> advancedPainters = new List<ClothConstraintAdvancedPainter>() {
-      new InsideConstraintPainter(),
       new SpreadConstraintPainter(),
+      new InsideConstraintPainter(),
     };
 
     public void OnGUI(ClothSkirtHelperCore core) {
@@ -42,9 +42,9 @@ namespace EsnyaFactory.ClothSkirtHelper {
       var bounds = core.mesh.bounds;
       Gizmos.color = Color.red;
 
-      var worldExtent = Vector3.Scale(bounds.extents, new Vector3(2, 0, 2)) + new Vector3(0, height, 0);
-      var worldCenter = core.skirt.transform.TransformPoint(bounds.center + Vector3.Scale(bounds.extents, new Vector3(0, 1, 0)) - new Vector3(0, height / 2, 0));
-      Gizmos.DrawWireCube(worldCenter, worldExtent);
+      var size = new Vector3(bounds.size.x, height, bounds.size.y);
+      var center = core.worldTop - new Vector3(0, height / 2, 0);
+      Gizmos.DrawWireCube(center, size);
 
       advancedPainters.ForEach(p => {
         if (p.weight == 0) return;
@@ -53,8 +53,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
     }
 
     private float GetMaxDistance(ClothSkirtHelperCore core, Vector3 localPosition) {
-      var bounds = core.mesh.bounds;
-      var thresholdY = bounds.center.y + bounds.extents.y - height;
+      var thresholdY = core.worldTop.y - height;
 
       if (localPosition.y > thresholdY) return 0;
       if (!core.advancedMode) return float.MaxValue;
@@ -91,19 +90,17 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
       EditorGUILayout.Space();
 
-      radius = EditorGUILayout.FloatField("Radius", radius);
+      radius = EditorGUILayout.FloatField("Inner Radius", radius);
     }
 
     public override void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {
       if (weight == 0.0) return;
 
-      Gizmos.color = Color.white;
 
       var bounds = core.mesh.bounds;
-      var worldCenter = new Vector3(core.center.position.x, bounds.center.y, core.center.position.z);
 
-      var top = worldCenter + new Vector3(0, bounds.extents.y - fixedHeight, 0);
-      var bottom = worldCenter - new Vector3(0, bounds.extents.y, 0);
+      var top = core.worldTop - new Vector3(0, fixedHeight, 0);
+      var bottom = core.worldBottom;
 
       new List<Vector3>() {
         new Vector3(1, 0, 0),
@@ -119,16 +116,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
     }
 
     public override float GetMaxDistance(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) {
-      var xyCenter = Vector3.Scale(core.center.position, new Vector3(1, 0, 1));
-      var xyPosition = Vector3.Scale(localPosition, new Vector3(1, 0, 1));
-      var distance = Vector3.Distance(xyPosition, xyCenter);
-
+      var distance = Vector3.Scale(localPosition + core.avatar.transform.position - core.worldCenter, new Vector3(1, 0, 1)).magnitude;
       return Mathf.Max(0, distance - radius);
     }
   }
 
   public class SpreadConstraintPainter : ClothConstraintAdvancedPainter {
-    public float radius = 0.1f;
     public float angle = 45.0f;
 
     public override void OnGUI(ClothSkirtHelperCore core) {
@@ -137,47 +130,62 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
       EditorGUILayout.Space();
 
-      radius = EditorGUILayout.FloatField("Waist Radius", radius);
-      angle = EditorGUILayout.Slider("Angle", angle, 0, 90);
+      angle = EditorGUILayout.Slider("Maximam spread Angle", angle, 0, 90);
+    }
+
+    private (Vector3, Vector3, Vector3) Preprocess(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) {
+      var worldPosition = localPosition + core.avatar.transform.position;
+      var xz = Vector3.Scale(worldPosition - core.worldCenter, new Vector3(1, 0, 1));
+
+      var nearestFixed = core.worldVertices
+        .Where(v => v.y > core.worldTop.y - fixedHeight)
+        .OrderBy(v => Vector3.Distance(worldPosition - core.worldCenter, Vector3.Scale(v - core.worldCenter, new Vector3(1, 1, 1))))
+        .First();
+
+      var radius = Vector3.Scale(nearestFixed - core.worldCenter, new Vector3(1, 0, 1)).magnitude;
+
+      var dir = xz.normalized;
+      var from = core.worldTop + dir * radius - new Vector3(0, fixedHeight, 0);
+      var length = (worldPosition - from).magnitude;
+
+      var rad = angle * Mathf.Deg2Rad;
+      var to = from + dir * length * Mathf.Sin(rad) - new Vector3(0, length * Mathf.Cos(rad), 0);
+
+      return (worldPosition, from, to);
     }
 
     public override void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {
       if (weight == 0.0) return;
 
-      Gizmos.color = Color.white;
 
       var bounds = core.mesh.bounds;
 
-      var height = bounds.extents.y * 2 - fixedHeight;
-      var top = new Vector3(core.center.position.x, bounds.center.y + bounds.extents.y - fixedHeight, core.center.position.z);
-
-      for (int a = 0; a < 360; a += 90) {
-        var r = Mathf.Deg2Rad * a;
-        var q = Quaternion.Euler(0, a, 0);
-        var from = top + q * new Vector3(radius, 0, 0);
-        var to = from + q * Quaternion.Euler(0, 0, angle) * new Vector3(0, -height, 0);
-        Gizmos.DrawLine(from, to);
+      new List<Vector3>() {
+        new Vector3(1, 0, 0),
+        new Vector3(1, 0, 1),
+        new Vector3(0, 0, 1),
+        new Vector3(-1, 0, 1),
+        new Vector3(-1, 0, 0),
+        new Vector3(-1, 0, -1),
+        new Vector3(0, 0, -1),
+        new Vector3(1, 0, -1),
       }
+        .Select(s => Vector3.Scale(bounds.extents, s) + core.worldBottom - core.avatar.transform.position)
+        .ToList()
+        .ForEach(localPosition => {
+          var (worldPosition, from, to) = Preprocess(core, localPosition, fixedHeight);
+
+          Gizmos.color = Color.white;
+          Gizmos.DrawLine(from, to);
+
+          Gizmos.color = Color.green;
+          Gizmos.DrawLine(core.worldBottom, to);
+        });
     }
 
     public override float GetMaxDistance(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) {
-      var position = core.skirt.transform.TransformPoint(localPosition);
-      var top = new Vector3(
-        core.center.position.x,
-        core.avatar.transform.position.y + core.mesh.bounds.center.y + core.mesh.bounds.extents.y - fixedHeight,
-        core.center.position.z
-      );
-
-      // var x = top - position.y;
-      // var y = Vector3.Scale(position - core.center.position, new Vector3(1, 0, 1)).magnitude - radius;
-      // var a1 = Mathf.Atan2(y, x);
-      // if (a1 <= 0) return 0;
-      var dir = (new Vector3(position.x, top.y, position.z) - top).normalized;
-      var from = top + dir * radius;
-      var l = (position - from).magnitude;
-      var to = from + dir.normalized * l;
-
-      return (position - to).magnitude * Mathf.Sin(angle * Mathf.Deg2Rad);
+      var (worldPosition, from, to) = Preprocess(core, localPosition, fixedHeight);
+      return (to - worldPosition).magnitude;
     }
   }
 }
