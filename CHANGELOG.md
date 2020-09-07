@@ -1,5 +1,14 @@
 # Changelog
 
+<a name="2.0.0-beta.1"></a>
+## 2.0.0-beta.1 (2020-09-07)
+
+### Added
+
+- ✨ New Helper [3fdadda]
+- ✨ SkirtMeshTools [2ad4aba]
+
+
 <a name="1.1.1"></a>
 ## 1.1.1 (2020-08-22)
 
