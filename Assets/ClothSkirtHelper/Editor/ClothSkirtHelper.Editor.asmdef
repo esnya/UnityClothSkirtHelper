@@ -1,6 +1,8 @@
 {
-    "name": "ClothSkirtHelper",
-    "references": [],
+    "name": "ClothSkirtHelper.Editor",
+    "references": [
+        "ClothSkirtHelper.Scripts"
+    ],
     "optionalUnityReferences": [],
     "includePlatforms": [
         "Editor"

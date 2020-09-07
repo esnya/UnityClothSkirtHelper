@@ -1,371 +1,98 @@
-#if UNITY_EDITOR
-using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using UnityEditor;
-using System.Threading.Tasks;
+namespace EsnyaFactory.ClothSkirtHelper {
+  using System;
+  using System.Collections.Generic;
+  using System.Linq;
+  using UnityEngine;
+  using UnityEditor;
 
-namespace EsnyaFactory {
   public class ClothSkirtHelper : EditorWindow
   {
     [MenuItem("EsnyaTools/Cloth Skirt Helper")]
     public static void Init()
     {
-        var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;
-        window.Show();
-    }
-
-    [MenuItem("CONTEXT/Cloth/Cloth Skirt Helper")]
-    public static void InitByAsset(MenuCommand menuCommand)
-    {
       var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;
       window.Show();
-
-      if (menuCommand.context is Cloth) {
-        window.cloth = menuCommand.context as Cloth;
-      }
     }
+    public ClothSkirtHelperCore core = new ClothSkirtHelperCore();
+    public ClothColliderCreator colliderCreator = new ClothColliderCreator();
+    public ClothConstraintPainter constraintPainter= new ClothConstraintPainter();
 
-    public enum ColliderMode {
-      AttachToBone,
-      CreateNewObject,
-      ReadOnly,
-      None,
-    }
-
-    Animator avatarAnimator;
-    Cloth cloth;
-
-    readonly HumanBodyBones[] boneIds = {
-      HumanBodyBones.Spine,
-      HumanBodyBones.Hips,
-      HumanBodyBones.LeftUpperLeg,
-      HumanBodyBones.LeftLowerLeg,
-      HumanBodyBones.LeftFoot,
-      HumanBodyBones.RightUpperLeg,
-      HumanBodyBones.RightLowerLeg,
-      HumanBodyBones.RightFoot,
-    };
-    readonly HumanBodyBones[][] colliderPairs = {
-      new HumanBodyBones[]{HumanBodyBones.Spine, HumanBodyBones.Hips},
-      new HumanBodyBones[]{HumanBodyBones.Hips, HumanBodyBones.LeftUpperLeg},
-      new HumanBodyBones[]{HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg},
-      new HumanBodyBones[]{HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot},
-      new HumanBodyBones[]{HumanBodyBones.Hips, HumanBodyBones.RightUpperLeg},
-      new HumanBodyBones[]{HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg},
-      new HumanBodyBones[]{HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot},
-    };
-
-    Transform[] bones;
-
-    bool removeRootBone = false;
-    bool lowerLegColliders = false;
-    bool spineCollider = false;
-    ColliderMode colliderMode = ColliderMode.AttachToBone;
-    float initialColliderRadius = 0.04f;
-    bool applyRecommendedParameters = true;
-    float fixedHeight = 0.1f;
-
-    bool isRunning = false;
-    int delay = 1000;
-
-    bool advancedMode = false;
-    bool fillConstraints = false;
-    float waistRadius = 0.18f;
-    float spreadAngle = 30.0f;
-    float constraintBlending = 0.0f;
-    float constraintBias = 0.05f;
-
-    void OnGUI()
-    {
+    private void OnEnable() {
       titleContent = new GUIContent("Cloth Skirt Helper");
+      core.OnEnable();
+    }
 
-      avatarAnimator = EditorGUILayout.ObjectField("Avatar", avatarAnimator, typeof(Animator), true) as Animator;
-      cloth = EditorGUILayout.ObjectField("Cloth", cloth, typeof(Cloth), true) as Cloth;
+    private List<(string, Action)> Validate() {
+      var errors = new List<(string, Action)>();
 
-      EditorGUILayout.Space();
-
-      EditorGUILayout.BeginVertical(GUI.skin.box);
-      EditorGUILayout.LabelField("Bones", new GUIStyle(){ fontStyle = FontStyle.Bold });
-      if (bones == null || bones.Length != boneIds.Length) {
-        bones = new Transform[boneIds.Length];
+      if (core.mesh.vertices.Distinct().Count() > 1000) {
+        errors.Add(("Too many vertices.", null));
       }
 
-      for (int i = 0; i < boneIds.Length; i++) {
-        bones[i] = EditorGUILayout.ObjectField(boneIds[i].ToString(), bones[i], typeof(Transform), true) as Transform;
+      if (core.skirt.transform.localScale != Vector3.one) {
+        errors.Add(("Scale of the skirt must be 1.", () => {
+          core.skirt.transform.localScale = Vector3.one;
+        }));
       }
 
-      EditorGUI.BeginDisabledGroup(avatarAnimator == null);
-      if (GUILayout.Button("Auto Detect")) {
-        AutoDetectBones();
-      }
-      EditorGUI.EndDisabledGroup();
-      EditorGUILayout.EndVertical();
+      return errors;
+    }
 
-      EditorGUILayout.Space();
+    public Vector2 scroll;
+    private void OnGUI() {
+      var gizmos = ClothSkirtHelperGizmos.GetOrCreate();
+      gizmos.drawGizmos = () => {
+        if (core.skirt == null) return;
+        constraintPainter.OnDrawGizmos(core);
+      };
 
-      EditorGUILayout.BeginVertical(GUI.skin.box);
-      EditorGUILayout.LabelField("Basic Options", new GUIStyle(){ fontStyle = FontStyle.Bold });
-      applyRecommendedParameters  = EditorGUILayout.Toggle("Apply Recommended Parameters", applyRecommendedParameters);
-      removeRootBone  = EditorGUILayout.Toggle("Remove Root Bone", removeRootBone);
-      lowerLegColliders  = EditorGUILayout.Toggle("Lower Leg Colliders", lowerLegColliders);
-      colliderMode = (ColliderMode)EditorGUILayout.EnumPopup("Collider Creation Mode", colliderMode);
-      initialColliderRadius  = EditorGUILayout.FloatField("Initial Colldier Radius", initialColliderRadius);
-      fixedHeight  = EditorGUILayout.FloatField("Fixed Height", fixedHeight);
-      EditorGUILayout.EndVertical();
+      using (var scrollScope = new EditorGUILayout.ScrollViewScope(scroll)) {
+        scroll = scrollScope.scrollPosition;
 
-      EditorGUILayout.Space();
-
-      EditorGUILayout.BeginVertical(GUI.skin.box);
-      advancedMode = EditorGUILayout.Toggle("Advanced Mode", advancedMode);
-
-      delay = advancedMode ? EditorGUILayout.IntField("Editor Delay (ms)", delay) : 1000;
-      spineCollider = advancedMode ? EditorGUILayout.Toggle("Spine Collider", spineCollider) : false;
-
-      if (advancedMode) {
-        EditorGUILayout.BeginVertical(GUI.skin.box);
-        fillConstraints = EditorGUILayout.Toggle("Fill Constraints", fillConstraints);
-
-        if (fillConstraints) {
-          EditorGUILayout.BeginVertical(GUI.skin.box);
-          EditorGUILayout.LabelField("Loose Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
-          waistRadius = EditorGUILayout.FloatField("Waist Radius", waistRadius);
-          spreadAngle = EditorGUILayout.Slider("Spread Angle", spreadAngle, 0.0f, 90.0f);
-          EditorGUILayout.EndVertical();
-
-          EditorGUILayout.BeginVertical(GUI.skin.box);
-          EditorGUILayout.LabelField("Hard Constraint", new GUIStyle(){ fontStyle = FontStyle.Bold });
-          constraintBias = EditorGUILayout.FloatField("Hard Constraint Bias", constraintBias);
-          EditorGUILayout.EndVertical();
-
-          constraintBlending = EditorGUILayout.Slider("Loose <-> Hard", constraintBlending, 0.0f, 1.0f);
-        }
-        EditorGUILayout.EndVertical();
-      } else {
-        fillConstraints = false;
-      }
-      EditorGUILayout.EndVertical();
-
-      var scaleDiff = cloth != null ? cloth.transform.localScale - Vector3.one : Vector3.zero;
-      var scaleInvalid = Mathf.Max(Mathf.Abs(scaleDiff.x), Mathf.Abs(scaleDiff.y), Mathf.Abs(scaleDiff.z)) > 0.01f;
-
-      if (scaleInvalid) {
         EditorGUILayout.Space();
-        EditorGUILayout.BeginVertical(GUI.skin.box);
-        EditorGUILayout.LabelField("Error", new GUIStyle() { fontStyle = FontStyle.Bold });
-        EditorGUILayout.LabelField("Scale of cloth object must be (1, 1, 1)");
-        if (GUILayout.Button("Auto Fix")) {
-          cloth.transform.localScale = Vector3.one;
-        }
-        EditorGUILayout.EndVertical();
-      }
 
-      EditorGUILayout.Space();
+        core.OnGUI();
 
-      EditorGUI.BeginDisabledGroup(avatarAnimator == null || cloth == null || bones.Select((t) => t != null).Any(a => !a) || isRunning || scaleInvalid);
-      if (GUILayout.Button(isRunning ? "Setup is running" : "Setup")) {
-        Setup();
-      }
+        if (core.skirt == null || core.avatar == null || core.bones.Any(p => p.Value == null)) return;
 
-      EditorGUI.EndDisabledGroup();
-    }
+        EditorGUILayout.Space();
 
-    int GetIndexById(HumanBodyBones boneId)
-    {
-      return boneIds.Select((value, i) => new { value, i }).First((a) => a.value == boneId).i;
-    }
 
-    SkinnedMeshRenderer GetClothRenderer()
-    {
-      return cloth.GetComponent<SkinnedMeshRenderer>();
-    }
+        EditorGUILayout.Space();
+        colliderCreator.OnGUI(core);
+        EditorGUILayout.Space();
 
-    void AutoDetectBones()
-    {
-      for (int i = 0; i < bones.Length; i++) {
-        var boneId = boneIds[i];
-        bones[i] = avatarAnimator.GetBoneTransform(boneId);
-      }
-    }
+        constraintPainter.OnGUI(core);
 
-    bool CheckColliderEnabled(HumanBodyBones boneId)
-    {
-      var isFoot = boneId == HumanBodyBones.LeftFoot || boneId == HumanBodyBones.RightFoot;
-      return (!isFoot || lowerLegColliders) && (boneId != HumanBodyBones.Spine || spineCollider);
-    }
+        EditorGUILayout.Space();
 
-    Transform GetColliderObject(int index)
-    {
-      var boneId = boneIds[index];
-      var bone = bones[index];
-      var name = $"SkirtCollider_{boneId}";
-      var existing = bone.Find(name);
-      if (existing != null) {
-        return existing;
-      }
-
-      if (colliderMode == ColliderMode.CreateNewObject) {
-        var colliderObject = new GameObject(name);
-        Undo.RegisterCreatedObjectUndo(colliderObject, "Create Collider GameObject");
-        colliderObject.transform.SetParent(bone);
-        colliderObject.transform.localPosition = Vector3.zero;
-        colliderObject.transform.localRotation = Quaternion.identity;
-        colliderObject.transform.localScale = Vector3.one;
-
-        return colliderObject.transform;
-      }
-
-      return bone;
-    }
-
-    void AddColliders()
-    {
-      for (int i = 0; i < bones.Length; i++) {
-        var boneId = boneIds[i];
-        if (CheckColliderEnabled(boneId)) {
-          var colliderObject = GetColliderObject(i);
-
-          foreach (var existingCollider in colliderObject.GetComponents<Collider>()) {
-            DestroyImmediate(existingCollider);
+        var errors = Validate();
+        if (errors.Count > 0) {
+          using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
+            errors.ForEach(a => {
+              using (new EditorGUILayout.HorizontalScope()) {
+                EditorGUILayout.LabelField("Error", a.Item1);
+                if (a.Item2 != null) {
+                  if (GUILayout.Button("Fix", GUILayout.ExpandWidth(false))) a.Item2();
+                }
+              }
+            });
           }
+          EditorGUILayout.Space();
+        }
 
-          var collider = colliderObject.gameObject.AddComponent<SphereCollider>();
-          collider.isTrigger = true;
-          collider.radius = initialColliderRadius;
+        using (new EditorGUI.DisabledGroupScope(errors.Count != 0)) {
+          if (GUILayout.Button("Execute")) {
+            Execute();
+          }
         }
       }
     }
 
-    void RemoveRootBone()
-    {
-      cloth.GetComponent<SkinnedMeshRenderer>().rootBone = null;
-    }
-
-    void SetupColliders()
-    {
-      var list = new List<ClothSphereColliderPair>();
-      foreach (var idPair in colliderPairs) {
-        if (CheckColliderEnabled(idPair[0]) && CheckColliderEnabled(idPair[1])) {
-          var first = GetColliderObject(GetIndexById(idPair[0]));
-          var second = GetColliderObject(GetIndexById(idPair[1]));
-
-          var pair = new ClothSphereColliderPair(
-            first.GetComponent<SphereCollider>(),
-            second.GetComponent<SphereCollider>()
-          );
-          list.Add(pair);
-        }
-      }
-      cloth.sphereColliders = list.ToArray();
-    }
-
-    ClothSkinningCoefficient ComputeCoefficient(Vector3 vertex, float fixedLimit)
-    {
-      var worldPosition = cloth.transform.TransformPoint(vertex.x, vertex.y, vertex.z);
-
-      var coefficient = new ClothSkinningCoefficient();
-      coefficient.collisionSphereDistance = float.MaxValue;
-
-      if (fillConstraints) {
-        if (worldPosition.y >= fixedLimit) {
-          coefficient.maxDistance = 0;
-        } else {
-          var h = Mathf.Abs(fixedLimit - worldPosition.y);
-          var r = h * Mathf.Sin(spreadAngle * Mathf.Deg2Rad);
-          var looseDistance = r + waistRadius;
-          var hardDistance = Mathf.Max(new Vector3(worldPosition.x, 0, worldPosition.z).magnitude - constraintBias, 0);
-          coefficient.maxDistance = Mathf.Lerp(looseDistance, hardDistance, constraintBlending);
-        }
-      } else {
-        if (worldPosition.y >= fixedLimit) {
-          coefficient.maxDistance = 0;
-        } else {
-          coefficient.maxDistance = float.MaxValue;
-        }
-      }
-
-      return coefficient;
-    }
-
-    async Task SetupMaxDistance()
-    {
-      var clothRender = GetClothRenderer();
-      var rootBone = clothRender.rootBone;
-      clothRender.rootBone = null;
-
-      await Task.Delay(delay);
-      var hipsY = bones[GetIndexById(HumanBodyBones.Hips)].position.y;
-      var fixedLimit = hipsY - fixedHeight;
-
-      cloth.coefficients = cloth.vertices.Select(vertex => ComputeCoefficient(vertex, fixedLimit)).ToArray();
-
-      await Task.Delay(delay);
-      clothRender.rootBone = rootBone;
-    }
-
-    void ApplyRecommendedParameters()
-    {
-      cloth.stretchingStiffness = 0.8f;
-      cloth.bendingStiffness = 0.8f;
-      cloth.damping = 0.2f;
-      cloth.worldVelocityScale = 0.0f;
-      cloth.worldAccelerationScale = 0.0f;
-      cloth.friction = 0.0f;
-      cloth.sleepThreshold = 1.0f;
-    }
-
-    async Task Reselect()
-    {
-      Selection.activeObject = null;
-      await Task.Delay(delay);
-      Selection.activeObject = cloth.gameObject;
-    }
-
-    async void Setup()
-    {
-      int max = 8;
-      int now = 0;
-      try {
-        isRunning = true;
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Initializing", (float)(now++) / max);
-
-        await Reselect();
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Initializing", (float)(now++) / max);
-        cloth.ClearTransformMotion();
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Collider Components", (float)(now++) / max);
-        if (colliderMode != ColliderMode.None && colliderMode != ColliderMode.ReadOnly) {
-          AddColliders();
-        }
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Collider Pairs", (float)(now++) / max);
-        if (colliderMode != ColliderMode.None) {
-          SetupColliders();
-        }
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Root bone", (float)(now++) / max);
-        if (removeRootBone) {
-          RemoveRootBone();
-        }
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Constraints", (float)(now++) / max);
-        await SetupMaxDistance();
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Parameters", (float)(now++) / max);
-        if (applyRecommendedParameters) {
-          ApplyRecommendedParameters();
-        }
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Finalizing", (float)(now++) / max);
-        await Reselect();
-
-        EditorUtility.DisplayProgressBar("Cloth Skirt Heler", "Done", (float)(now++) / max);
-      } finally {
-        isRunning = false;
-        EditorUtility.ClearProgressBar();
-      }
+    private void Execute() {
+      core.Execute();
+      colliderCreator.Execute(core);
+      constraintPainter.Execute(core);
     }
   }
 }
-#endif

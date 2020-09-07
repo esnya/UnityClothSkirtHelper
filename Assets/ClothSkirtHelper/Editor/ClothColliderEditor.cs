@@ -1,4 +1,4 @@
-namespace EsnyaFactory {
+namespace EsnyaFactory.ClothSkirtHelper {
   using System.Collections.Generic;
   using System.Linq;
   using System.Text.RegularExpressions;
@@ -58,6 +58,7 @@ namespace EsnyaFactory {
 
       var colliders = cloth.sphereColliders
         .SelectMany(pair => new List<Collider>() { pair.first, pair.second })
+        .Where(c => c != null)
         .Concat(cloth.capsuleColliders)
         .Distinct()
         .ToList();
@@ -113,10 +114,6 @@ namespace EsnyaFactory {
 
 
         EditorGUILayout.Space();
-      }
-
-      if (GUILayout.Button("Open Cloth Skirt Helper")) {
-        ClothSkirtHelper.InitByAsset(new MenuCommand(cloth, 0));
       }
     }
   }

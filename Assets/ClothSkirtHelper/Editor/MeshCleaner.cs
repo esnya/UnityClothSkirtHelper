@@ -1,4 +1,4 @@
-namespace EsnyaFactory {
+namespace EsnyaFactory.ClothSkirtHelper {
   using System.Collections.Generic;
   using System.Linq;
   using UnityEngine;
