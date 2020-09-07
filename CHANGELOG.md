@@ -1,5 +1,25 @@
 # Changelog
 
+<a name="2.0.0-beta.2"></a>
+## 2.0.0-beta.2 (2020-09-07)
+
+### Added
+
+- ✨ MeshSpreadingDeformer [ac0031b]
+
+### Changed
+
+- ⚡ Update ConstriantPainters [781fe67]
+
+### Fixed
+
+- 🐛 Fix collider creation toggle [877c6d7]
+
+### Miscellaneous
+
+- 📝 Update README.md [01b46eb]
+
+
 <a name="2.0.0-beta.1"></a>
 ## 2.0.0-beta.1 (2020-09-07)
 
