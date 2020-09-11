@@ -1,5 +1,17 @@
 # Changelog
 
+<a name="2.0.0-beta.3"></a>
+## 2.0.0-beta.3 (2020-09-11)
+
+### Added
+
+- ✨ Apply spreading constraint on basic mode [f8371f4]
+
+### Fixed
+
+- ✏️ Fix typo [057402c]
+
+
 <a name="2.0.0-beta.2"></a>
 ## 2.0.0-beta.2 (2020-09-07)
 
