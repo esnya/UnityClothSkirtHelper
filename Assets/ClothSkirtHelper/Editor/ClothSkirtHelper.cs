@@ -72,7 +72,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
               using (new EditorGUILayout.HorizontalScope()) {
                 EditorGUILayout.LabelField("Error", a.Item1);
                 if (a.Item2 != null) {
-                  if (GUILayout.Button("Fix", GUILayout.ExpandWidth(false))) a.Item2();
+                  if (GUILayout.Button("Auto Fix", GUILayout.ExpandWidth(false))) a.Item2();
                 }
               }
             });

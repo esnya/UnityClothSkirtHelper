@@ -46,6 +46,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       var center = core.worldTop - new Vector3(0, height / 2, 0);
       Gizmos.DrawWireCube(center, size);
 
+      if (!core.advancedMode) return;
       advancedPainters.ForEach(p => {
         if (p.weight == 0) return;
         p.OnDrawGizmos(core, height);
@@ -56,7 +57,11 @@ namespace EsnyaFactory.ClothSkirtHelper {
       var thresholdY = core.worldTop.y - height;
 
       if (localPosition.y > thresholdY) return 0;
-      if (!core.advancedMode) return float.MaxValue;
+      if (!core.advancedMode) {
+        var painter = new SpreadConstraintPainter();
+        painter.angle = 80;
+        return painter.GetMaxDistance(core, localPosition, height);
+      }
 
       var totalWeight = advancedPainters.Select(p => p.weight).Sum();
       if (totalWeight <= 0.001) return float.MaxValue;
@@ -135,29 +140,10 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     private (Vector3, Vector3, Vector3) Preprocess(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) {
       return MeshUtility.Spreading(core.worldVertices, core.avatar.transform.position, core.center, localPosition, core.worldTop.y - fixedHeight, angle);
-      // var worldPosition = localPosition + core.avatar.transform.position;
-      // var xz = Vector3.Scale(worldPosition - core.worldCenter, new Vector3(1, 0, 1));
-
-      // var nearestFixed = core.worldVertices
-      //   .Where(v => v.y > core.worldTop.y - fixedHeight)
-      //   .OrderBy(v => Vector3.Distance(worldPosition - core.worldCenter, Vector3.Scale(v - core.worldCenter, new Vector3(1, 1, 1))))
-      //   .First();
-
-      // var radius = Vector3.Scale(nearestFixed - core.worldCenter, new Vector3(1, 0, 1)).magnitude;
-
-      // var dir = xz.normalized;
-      // var from = core.worldTop + dir * radius - new Vector3(0, fixedHeight, 0);
-      // var length = (worldPosition - from).magnitude;
-
-      // var rad = angle * Mathf.Deg2Rad;
-      // var to = from + dir * length * Mathf.Sin(rad) - new Vector3(0, length * Mathf.Cos(rad), 0);
-
-      // return (worldPosition, from, to);
     }
 
     public override void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {
       if (weight == 0.0) return;
-
 
       var bounds = core.mesh.bounds;
 

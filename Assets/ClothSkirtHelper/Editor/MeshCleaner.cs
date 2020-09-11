@@ -155,7 +155,6 @@ namespace EsnyaFactory.ClothSkirtHelper {
           return;
         }
 
-
         dst.SetIndices(indices.ToArray(), mesh.GetTopology(i), i, false, 0);
       }
 
