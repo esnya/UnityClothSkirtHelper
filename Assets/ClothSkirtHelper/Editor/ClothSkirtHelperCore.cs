@@ -10,7 +10,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public SkinnedMeshRenderer skirt;
     public Animator avatar;
     public Dictionary<HumanBodyBones, Transform> bones = new Dictionary<HumanBodyBones, Transform>();
-    public Transform xzCemter;
+    public Transform xzCenter;
 
     public bool applyRecommendedParameters = true;
     public bool advancedMode = false;
@@ -19,7 +19,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public Cloth cloth;
 
     public Vector3 center {
-      get => new Vector3(xzCemter.position.x, avatar.transform.position.y, xzCemter.position.z);
+      get => new Vector3(xzCenter.position.x, avatar.transform.position.y, xzCenter.position.z);
     }
 
     public Vector3 worldCenter {
@@ -52,12 +52,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
     private void OnAvatarChanged() {
       if (avatar == null) {
         bones.Clear();
-        xzCemter = null;
+        xzCenter = null;
       } else {
         bones = HumanoidUtility.boneIds
           .Select(boneId => new KeyValuePair<HumanBodyBones, Transform>(boneId, avatar.GetBoneTransform(boneId)))
           .ToDictionary(p => p.Key, p => p.Value);
-        xzCemter = bones[HumanBodyBones.Hips];
+        xzCenter = bones[HumanBodyBones.Hips];
       }
     }
 
@@ -105,9 +105,9 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
         var hips = bones.FirstOrDefault(p => p.Key == HumanBodyBones.Hips).Value;
         if (!advancedMode) {
-          xzCemter = hips;
+          xzCenter = hips;
         } else {
-          xzCemter = EditorGUILayout.ObjectField("XZ Center", xzCemter, typeof(Transform), true) as Transform ?? hips;
+          xzCenter = EditorGUILayout.ObjectField("XZ Center", xzCenter, typeof(Transform), true) as Transform ?? hips;
         }
       }
 
