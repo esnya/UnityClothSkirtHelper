@@ -10,13 +10,15 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public Animator avatar;
     public float startHeight = 0.1f;
     public float angle = 30.0f;
+    public bool extendAngle = false;
     public Transform xzCenter;
 
     public void OnGUI(SkinnedMeshRenderer skinnedMeshRenderer) {
       avatar = EditorGUILayout.ObjectField("Avatar", avatar, typeof(Animator), true) as Animator;
       xzCenter = EditorGUILayout.ObjectField("XZ Center", xzCenter, typeof(Transform), true) as Transform ?? skinnedMeshRenderer.transform;
       startHeight = EditorGUILayout.FloatField("Start Height from Top(m)", startHeight);
-      angle = EditorGUILayout.Slider("Angle", angle, 0, 90);
+      angle = EditorGUILayout.Slider("Angle", angle, 0, extendAngle ? 90 : 45);
+      extendAngle = EditorGUILayout.Toggle("Extend Angle", extendAngle);
     }
 
     public SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory) {
