@@ -1,5 +1,13 @@
 # Changelog
 
+<a name="2.0.0"></a>
+## 2.0.0 (2020-09-14)
+
+### Changed
+
+- ⚡ Limit angle of SpreadingDeformer [1446b15]
+
+
 <a name="2.0.0-beta.3"></a>
 ## 2.0.0-beta.3 (2020-09-11)
 
