@@ -16,6 +16,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
   [Serializable]
   public class ClothConstraintPainter {
     public float height = 0.1f;
+    public float bias = 0.0f;
 
     public List<ClothConstraintAdvancedPainter> advancedPainters = new List<ClothConstraintAdvancedPainter>() {
       new SpreadConstraintPainter(),
@@ -26,6 +27,10 @@ namespace EsnyaFactory.ClothSkirtHelper {
       using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
         EditorGUILayout.LabelField("Top Edge Constraint");
         height = EditorGUILayout.FloatField("Height (m)", height);
+
+        if (core.advancedMode) {
+          bias = EditorGUILayout.FloatField("Bias", bias);
+        }
       }
 
       if (core.advancedMode) {
@@ -47,6 +52,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       Gizmos.DrawWireCube(center, size);
 
       if (!core.advancedMode) return;
+
       advancedPainters.ForEach(p => {
         if (p.weight == 0) return;
         p.OnDrawGizmos(core, height);
@@ -66,8 +72,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       var totalWeight = advancedPainters.Select(p => p.weight).Sum();
       if (totalWeight <= 0.001) return float.MaxValue;
 
-      // return (float)(1.0 / advancedPainters.Select(p => (double)p.weight / p.GetMaxDistance(core, localPosition, height)).Sum());
-      return advancedPainters.Select(p => p.GetMaxDistance(core, localPosition, height) * p.weight / totalWeight).Sum();
+      return advancedPainters.Select(p => p.GetMaxDistance(core, localPosition, height) * p.weight / totalWeight).Sum() + bias;
     }
 
     public void Execute(ClothSkirtHelperCore core) {
