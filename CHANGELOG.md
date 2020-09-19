@@ -1,5 +1,13 @@
 # Changelog
 
+<a name="2.1.0-alpha.1"></a>
+## 2.1.0-alpha.1 (2020-09-19)
+
+### Added
+
+- ✨ Constraint Bias [71ea5ae]
+
+
 <a name="2.0.0"></a>
 ## 2.0.0 (2020-09-14)
 
