@@ -12,14 +12,23 @@ namespace EsnyaFactory.ClothSkirtHelper {
     public List<Collider> excluderColliders = new List<Collider>();
     public bool includeBoundary = true;
 
+    private static bool IsInside(IEnumerable<Collider> colliders, Vector3 vertex) {
+      return colliders.Any(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) < 0.001);
+    }
+
+    private static bool IsNotInside(IEnumerable<Collider> colldiers, Vector3 vertex) {
+      return colldiers.All(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) >= 0.001);
+    }
+
     public SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory) {
       var originalMesh = skinnedMeshRenderer.sharedMesh;
       var validColliders = colliders.Where(c => c != null).ToList();
+      var validExcluderColliders = excluderColliders.Where(c => c != null).ToList();
 
       var skirtMesh = MeshUtility.ExtractMesh(
         skinnedMeshRenderer,
         (vertex, normal) => {
-          return validColliders.Count == 0 || validColliders.Any(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) < 0.001);
+          return validColliders.Count == 0 || IsInside(validColliders, vertex) && IsNotInside(validExcluderColliders, vertex);
         },
         subMesh => subMeshFilters[subMesh],
         includeBoundary
@@ -27,7 +36,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
       skirtMesh.name = $"{originalMesh.name}_skirt";
       var otherMesh = MeshUtility.ExtractMesh(
         skinnedMeshRenderer,
-        (vertex, normal) => validColliders.Count > 0 && validColliders.All(c => Vector3.Distance(c.ClosestPoint(vertex), vertex) >= 0.001),
+        (vertex, normal) => validColliders.Count > 0 && (IsNotInside(validColliders, vertex) || IsInside(validExcluderColliders, vertex)),
         subMesh => true,
         !includeBoundary
       );
@@ -64,12 +73,30 @@ namespace EsnyaFactory.ClothSkirtHelper {
         EditorGUILayout.LabelField("Filter by Collider (Box, Sphere or Capsule)");
         if (GUILayout.Button("+", GUILayout.ExpandWidth(false))) colliders.Add(null);
       }
+
       using (new EditorGUI.IndentLevelScope()) {
         colliders = colliders
           .Select((collider, i) => {
             using (new EditorGUILayout.HorizontalScope()) {
               var newValue =  EditorGUILayout.ObjectField(collider, typeof(Collider), true) as Collider;
               if (GUILayout.Button("-", GUILayout.ExpandWidth(false))) colliders.RemoveAt(i);
+              return newValue;
+            }
+          })
+          .ToList();
+      }
+
+      using (new EditorGUILayout.HorizontalScope()) {
+        EditorGUILayout.LabelField("Exclude By Collider (Box, Sphere or Capsule)");
+        if (GUILayout.Button("+", GUILayout.ExpandWidth(false))) excluderColliders.Add(null);
+      }
+
+      using (new EditorGUI.IndentLevelScope()) {
+        excluderColliders = excluderColliders
+          .Select((collider, i) => {
+            using (new EditorGUILayout.HorizontalScope()) {
+              var newValue =  EditorGUILayout.ObjectField(collider, typeof(Collider), true) as Collider;
+              if (GUILayout.Button("-", GUILayout.ExpandWidth(false))) excluderColliders.RemoveAt(i);
               return newValue;
             }
           })
