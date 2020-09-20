@@ -161,7 +161,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
     private List<(string, Action)> Validate() {
       var errors = new List<(string, Action)>();
 
-      if (mesh.vertices.Distinct().Count() > 1000) {
+      if (mesh.vertices.Distinct().Count() > 1500) {
         errors.Add(("Too many vertices.", null));
       }
 
