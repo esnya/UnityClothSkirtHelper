@@ -72,24 +72,28 @@ namespace EsnyaFactory.ClothSkirtHelper {
       OnAvatarChanged();
     }
 
-    public void OnGUI() {
+    public bool OnGUI() {
       using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
         using (var changeCheckScope = new EditorGUI.ChangeCheckScope()) {
           skirt = EditorGUILayout.ObjectField("Skirt", skirt, typeof(SkinnedMeshRenderer), true) as SkinnedMeshRenderer;
           if (changeCheckScope.changed) OnSkirtCanged();
         }
 
-        if (skirt == null) return;
+
+        if (skirt == null) return false;
+
         MeshUtility.MeshMetricsGUI(skirt);
 
         EditorGUILayout.Space();
+
 
         using (var changeCheckScope = new EditorGUI.ChangeCheckScope()) {
           avatar = EditorGUILayout.ObjectField("Avatar", avatar, typeof(Animator), true) as Animator;
           if (changeCheckScope.changed) OnAvatarChanged();
         }
 
-        if (avatar == null) return;
+        if (avatar == null) return false;
+
         using (new EditorGUI.IndentLevelScope()) {
           HumanoidUtility.boneIds.ForEach(boneId => {
             bones[boneId] = EditorGUILayout.ObjectField(boneId.ToString(), bones.ContainsKey(boneId) ? bones[boneId] : null, typeof(Transform), true) as Transform;
@@ -98,6 +102,23 @@ namespace EsnyaFactory.ClothSkirtHelper {
       }
 
       EditorGUILayout.Space();
+
+      var errors = Validate();
+      if (errors.Count > 0) {
+        using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
+          errors.ForEach(a => {
+            using (new EditorGUILayout.HorizontalScope()) {
+              EditorGUILayout.LabelField("Error", a.Item1);
+              if (a.Item2 != null) {
+                if (GUILayout.Button("Auto Fix", GUILayout.ExpandWidth(false))) a.Item2();
+              }
+            }
+          });
+        }
+        EditorGUILayout.Space();
+
+        return false;
+      }
 
       using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
         applyRecommendedParameters = EditorGUILayout.Toggle("Apply Recommended", applyRecommendedParameters);
@@ -114,6 +135,8 @@ namespace EsnyaFactory.ClothSkirtHelper {
       if (skirt != null && mesh == null) {
         BakeMesh();
       }
+
+      return true;
     }
 
     public void Execute() {
@@ -133,6 +156,35 @@ namespace EsnyaFactory.ClothSkirtHelper {
         cloth.friction = 0.0f;
         cloth.sleepThreshold = 1.0f;
       }
+    }
+
+    private List<(string, Action)> Validate() {
+      var errors = new List<(string, Action)>();
+
+      if (mesh.vertices.Distinct().Count() > 1000) {
+        errors.Add(("Too many vertices.", null));
+      }
+
+      if (skirt.transform.localPosition != Vector3.zero) {
+        errors.Add(("Position of the skirt must be 0.", () => {
+          skirt.transform.localPosition = Vector3.zero;
+          OnSkirtCanged();
+        }));
+      }
+      if (skirt.transform.localRotation != Quaternion.identity) {
+        errors.Add(("Rotation of the skirt must be 0.", () => {
+          skirt.transform.localRotation = Quaternion.identity;
+          OnSkirtCanged();
+        }));
+      }
+      if (skirt.transform.localScale != Vector3.one) {
+        errors.Add(("Scale of the skirt must be 1.", () => {
+          skirt.transform.localScale = Vector3.one;
+          OnSkirtCanged();
+        }));
+      }
+
+      return errors;
     }
   }
 }

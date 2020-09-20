@@ -9,6 +9,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
   class MeshExtractor : ToolBase {
     public List<bool> subMeshFilters = new List<bool>() { true };
     public List<Collider> colliders = new List<Collider>() { null };
+    public List<Collider> excluderColliders = new List<Collider>();
     public bool includeBoundary = true;
 
     public SkinnedMeshRenderer Execute(SkinnedMeshRenderer skinnedMeshRenderer, string outputDirectory) {

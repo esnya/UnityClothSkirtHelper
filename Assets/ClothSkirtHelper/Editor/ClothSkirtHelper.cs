@@ -22,22 +22,6 @@ namespace EsnyaFactory.ClothSkirtHelper {
       core.OnEnable();
     }
 
-    private List<(string, Action)> Validate() {
-      var errors = new List<(string, Action)>();
-
-      if (core.mesh.vertices.Distinct().Count() > 1000) {
-        errors.Add(("Too many vertices.", null));
-      }
-
-      if (core.skirt.transform.localScale != Vector3.one) {
-        errors.Add(("Scale of the skirt must be 1.", () => {
-          core.skirt.transform.localScale = Vector3.one;
-        }));
-      }
-
-      return errors;
-    }
-
     public Vector2 scroll;
     private void OnGUI() {
       var gizmos = ClothSkirtHelperGizmos.GetOrCreate();
@@ -51,9 +35,9 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
         EditorGUILayout.Space();
 
-        core.OnGUI();
+        var valid = core.OnGUI();
 
-        if (core.skirt == null || core.avatar == null || core.bones.Any(p => p.Value == null)) return;
+        if (!valid || core.skirt == null || core.avatar == null || core.bones.Any(p => p.Value == null)) return;
 
         EditorGUILayout.Space();
 
@@ -65,22 +49,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
         EditorGUILayout.Space();
 
-        var errors = Validate();
-        if (errors.Count > 0) {
-          using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
-            errors.ForEach(a => {
-              using (new EditorGUILayout.HorizontalScope()) {
-                EditorGUILayout.LabelField("Error", a.Item1);
-                if (a.Item2 != null) {
-                  if (GUILayout.Button("Auto Fix", GUILayout.ExpandWidth(false))) a.Item2();
-                }
-              }
-            });
-          }
-          EditorGUILayout.Space();
-        }
-
-        using (new EditorGUI.DisabledGroupScope(errors.Count != 0)) {
+        using (new EditorGUI.DisabledGroupScope(!valid)) {
           if (GUILayout.Button("Apply")) {
             Execute();
           }

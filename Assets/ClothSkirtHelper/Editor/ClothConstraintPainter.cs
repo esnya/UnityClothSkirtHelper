@@ -27,10 +27,6 @@ namespace EsnyaFactory.ClothSkirtHelper {
       using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
         EditorGUILayout.LabelField("Top Edge Constraint");
         height = EditorGUILayout.FloatField("Height (m)", height);
-
-        if (core.advancedMode) {
-          bias = EditorGUILayout.FloatField("Bias", bias);
-        }
       }
 
       if (core.advancedMode) {
@@ -40,6 +36,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
             p.OnGUI(core);
           }
         });
+
+        EditorGUILayout.Space();
+
+        using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
+          bias = EditorGUILayout.FloatField("Bias", bias);
+        }
       }
     }
 
