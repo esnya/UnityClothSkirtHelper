@@ -96,9 +96,11 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     public static Mesh ExtractMesh(SkinnedMeshRenderer srcRenderer, Func<Vector3, Vector3, bool> vertexPredicate, Func<int, bool> subMeshPredicate, bool includeBoundary) {
       var srcMesh = srcRenderer.sharedMesh;
+      var bakedMesh = new Mesh();
+      srcRenderer.BakeMesh(bakedMesh);
 
-      var worldVertices = srcMesh.vertices.Select(srcRenderer.transform.TransformPoint).ToArray();
-      var worldNormals = srcMesh.normals.Select(srcRenderer.transform.TransformDirection).ToArray();
+      var worldVertices = bakedMesh.vertices.Select(srcRenderer.transform.TransformPoint).ToArray();
+      var worldNormals = bakedMesh.normals.Select(srcRenderer.transform.TransformDirection).ToArray();
 
       var subMeshList = Enumerable
         .Range(0, srcMesh.subMeshCount)
