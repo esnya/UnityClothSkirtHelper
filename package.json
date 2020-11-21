@@ -1,6 +1,6 @@
 {
   "name": "com.nekometer.esnya.cloth-skirt-helper",
-  "version": "2.1.0",
+  "version": "2.2.0-alpha.1",
   "displayName": "Cloth Skirt Helper",
   "unity": "2018.4",
   "description": "Easy setup utility for skirts of VRChat Avatars with Unity Cloth comonent",

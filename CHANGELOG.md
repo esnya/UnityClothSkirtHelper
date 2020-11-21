@@ -1,5 +1,13 @@
 # Changelog
 
+<a name="2.2.0-alpha.1"></a>
+## 2.2.0-alpha.1 (2020-11-21)
+
+### Added
+
+- ✨ ClothPreset [a553a1b]
+
+
 <a name="2.1.0"></a>
 ## 2.1.0 (2020-09-20)
 
