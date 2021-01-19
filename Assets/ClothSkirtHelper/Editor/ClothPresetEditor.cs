@@ -1,11 +1,37 @@
 namespace EsnyaFactory
 {
+  using System.Collections.Generic;
   using System.Linq;
   using UnityEngine;
   using UnityEditor;
 
   [CustomEditor(typeof(ClothPreset))]
   public class ClothPresetEditor : Editor {
+    static Animator FindAnimator(Transform current)
+    {
+      if (current == null) return null;
+      var animator = current.GetComponent<Animator>();
+      if (animator != null) return animator;
+      return FindAnimator(current.parent);
+    }
+    static Animator FindAnimator(SkinnedMeshRenderer current)
+    {
+      return FindAnimator(current.rootBone ?? current.transform);
+    }
+
+    static IDictionary<Transform, HumanBodyBones> GetBoneTable(Animator animator) {
+      var boneTable = new Dictionary<Transform, HumanBodyBones>();
+      if (animator == null || !animator.isHuman) return boneTable;
+
+      foreach (var bone in HumanBodyBones.GetValues(typeof(HumanBodyBones)))
+      {
+        var t = animator.GetBoneTransform((HumanBodyBones)bone);
+        if (t != null) boneTable[t] = (HumanBodyBones)bone;
+      }
+
+      return boneTable;
+    }
+
     private ClothSkinningCoefficient defaultCoefficient = new ClothSkinningCoefficient() {
       maxDistance = float.MaxValue,
       collisionSphereDistance = float.MaxValue,
@@ -53,11 +79,20 @@ namespace EsnyaFactory
                 clothPreset.enableContinuousCollision = cloth.enableContinuousCollision;
                 clothPreset.clothSolverFrequency = cloth.clothSolverFrequency;
                 clothPreset.sleepThreshold = cloth.sleepThreshold;
+
+                var animator = FindAnimator(cloth.GetComponent<SkinnedMeshRenderer>());
+                /*
+                var boneTable = GetBoneTable(animator);
+                clothPreset.sphereColliders = cloth.sphereColliders.Select(pair => (
+                  ClothPreset.SphereColliderPreset.Serialize(pair.first, boneTable),
+                  ClothPreset.SphereColliderPreset.Serialize(pair.second, boneTable)
+                )).ToList();
+                */
               }
 
               clothPreset.vertices = cloth.vertices.ToList();
               clothPreset.normals = cloth.normals.ToList();
-              clothPreset.coefficients = cloth.coefficients.Select(ClothPreset.Coefficient.Serialize).ToList();
+              clothPreset.coefficients = cloth.coefficients.Select(ClothPreset.CoefficientPreset.Serialize).ToList();
 
               EditorUtility.SetDirty(clothPreset);
               AssetDatabase.Refresh();
@@ -85,7 +120,7 @@ namespace EsnyaFactory
                   cloth.coefficients = clothPreset
                     .coefficients
                     .Take(cloth.vertices.Length)
-                    .Select(ClothPreset.Coefficient.Deserialize)
+                    .Select(ClothPreset.CoefficientPreset.Deserialize)
                     .Concat(Enumerable.Repeat(defaultCoefficient, cloth.vertices.Length - clothPreset.vertices.Count))
                     .ToArray();
                   break;
@@ -100,7 +135,7 @@ namespace EsnyaFactory
                         .FirstOrDefault();
                       return clothPreset.coefficients[src];
                     })
-                    .Select(ClothPreset.Coefficient.Deserialize)
+                    .Select(ClothPreset.CoefficientPreset.Deserialize)
                     .ToArray();
                   break;
               }
