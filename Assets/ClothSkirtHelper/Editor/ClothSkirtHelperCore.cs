@@ -14,6 +14,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     public bool applyRecommendedParameters = true;
     public bool advancedMode = false;
+    public bool paintSP = false;
 
     public Mesh mesh;
     public Cloth cloth;
@@ -127,8 +128,10 @@ namespace EsnyaFactory.ClothSkirtHelper {
         var hips = bones.FirstOrDefault(p => p.Key == HumanBodyBones.Hips).Value;
         if (!advancedMode) {
           xzCenter = hips;
+          paintSP = false;
         } else {
           xzCenter = EditorGUILayout.ObjectField("XZ Center", xzCenter, typeof(Transform), true) as Transform ?? hips;
+          paintSP = EditorGUILayout.Toggle("Surface Penetration", paintSP);
         }
       }
 

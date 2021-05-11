@@ -7,16 +7,24 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
   [Serializable]
   public class ClothConstraintAdvancedPainter {
-    public float weight = 0.0f;
-    public virtual void OnGUI(ClothSkirtHelperCore core) {}
+    public float weight = 0.0f, spWeight = 0.0f;
+    public virtual void OnGUI(ClothSkirtHelperCore core) {
+      EditorGUILayout.LabelField("Weight");
+      using (new EditorGUI.IndentLevelScope()) {
+        weight = EditorGUILayout.Slider("Max Distance", weight, 0, 1);
+        if (core.paintSP) spWeight = EditorGUILayout.Slider("Surface Penetration", spWeight, 0, 1);
+      }
+
+    }
     public virtual void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {}
     public virtual float GetMaxDistance(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) => float.MaxValue;
+    public virtual float GetSurfacePenetration(ClothSkirtHelperCore core, Vector3 localPosition, float fixedHeight) => GetMaxDistance(core, localPosition, fixedHeight);
   }
 
   [Serializable]
   public class ClothConstraintPainter {
     public float height = 0.1f;
-    public float bias = 0.0f;
+    public float bias = 0.0f, spBias = 0.0f;
 
     public List<ClothConstraintAdvancedPainter> advancedPainters = new List<ClothConstraintAdvancedPainter>() {
       new SpreadConstraintPainter(),
@@ -40,7 +48,11 @@ namespace EsnyaFactory.ClothSkirtHelper {
         EditorGUILayout.Space();
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box)) {
-          bias = EditorGUILayout.FloatField("Bias", bias);
+          EditorGUILayout.LabelField("Bias");
+          using (new EditorGUI.IndentLevelScope()) {
+            bias = EditorGUILayout.FloatField("Max Distance", bias);
+            if (core.paintSP) spBias = EditorGUILayout.FloatField("Surface Penetration", spBias);
+          }
         }
       }
     }
@@ -77,6 +89,18 @@ namespace EsnyaFactory.ClothSkirtHelper {
       return advancedPainters.Select(p => p.GetMaxDistance(core, localPosition, height) * p.weight / totalWeight).Sum() + bias;
     }
 
+    private float GetSurfacePenetration(ClothSkirtHelperCore core, Vector3 localPosition) {
+      if (!core.paintSP || !core.advancedMode) return float.MaxValue;
+      // var thresholdY = core.worldTop.y - height;
+
+      // if (localPosition.y > thresholdY) return 0;
+
+      var totalWeight = advancedPainters.Select(p => p.spWeight).Sum();
+      if (totalWeight <= 0.001) return float.MaxValue;
+
+      return advancedPainters.Select(p => p.GetSurfacePenetration(core, localPosition, height) * p.spWeight / totalWeight).Sum() + spBias;
+    }
+
     public void Execute(ClothSkirtHelperCore core) {
       var cloth = core.cloth;
 
@@ -84,7 +108,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
         .Distinct()
         .Select(v => {
           return new ClothSkinningCoefficient() {
-            collisionSphereDistance = float.MaxValue,
+            collisionSphereDistance = GetSurfacePenetration(core, v),
             maxDistance = GetMaxDistance(core, v),
           };
         })
@@ -98,16 +122,12 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     public override void OnGUI(ClothSkirtHelperCore core) {
       EditorGUILayout.LabelField("Inside Constraint");
-      weight = EditorGUILayout.Slider("Weight", weight, 0, 1);
-
-      EditorGUILayout.Space();
-
+      base.OnGUI(core);
       radius = EditorGUILayout.FloatField("Inner Radius", radius);
     }
 
     public override void OnDrawGizmos(ClothSkirtHelperCore core, float fixedHeight) {
       if (weight == 0.0) return;
-
 
       var bounds = core.mesh.bounds;
 
@@ -138,10 +158,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
     public override void OnGUI(ClothSkirtHelperCore core) {
       EditorGUILayout.LabelField("Spreading Constraint");
-      weight = EditorGUILayout.Slider("Weight", weight, 0, 1);
-
-      EditorGUILayout.Space();
-
+      base.OnGUI(core);
       angle = EditorGUILayout.Slider("Maximam spread Angle", angle, 0, 90);
     }
 
