@@ -7,7 +7,7 @@ namespace EsnyaFactory.ClothSkirtHelper {
 
   public class ClothSkirtHelper : EditorWindow
   {
-    [MenuItem("EsnyaTools/Cloth Skirt Helper")]
+    [MenuItem("EsnyaTools/Cloth/Cloth Skirt Helper")]
     public static void Init()
     {
       var window = EditorWindow.GetWindow(typeof(ClothSkirtHelper)) as ClothSkirtHelper;
