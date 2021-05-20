@@ -1,18 +1,69 @@
 {
   "name": "com.nekometer.cloth-skirt-helper",
-  "version": "2.2.0-alpha.1",
   "displayName": "Cloth Skirt Helper",
-  "unity": "2018.4",
+  "version": "2.2.0-alpha.1",
+  "private": true,
   "description": "Easy setup utility for skirts of VRChat Avatars with Unity Cloth comonent",
   "keywords": [
     "VRChat",
     "Unity",
     "Cloth"
   ],
+  "license": "MIT",
+  "author": "esnya",
   "scripts": {
     "version": "npx cross-var npx gitmoji-changelog $npm_package_version && git add CHANGELOG.md"
   },
-  "author": "esnya",
-  "license": "MIT",
-  "private": true
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "commitlint": {
+    "extends": [
+      "gitmoji"
+    ]
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^11.0.0",
+    "@commitlint/config-conventional": "^11.0.0",
+    "@commitlint/core": "^11.0.0",
+    "@semantic-release/exec": "^5.0.0",
+    "@semantic-release/github": "^7.2.0",
+    "commitlint-config-gitmoji": "^2.1.10",
+    "husky": "^4.3.8",
+    "semantic-release": "^17.3.7",
+    "semantic-release-gitmoji": "^1.3.4"
+  },
+  "release": {
+    "branches": [
+      "master",
+      {
+        "name": "beta",
+        "prerelease": true
+      },
+      {
+        "name": "alpha",
+        "prerelease": true
+      }
+    ],
+    "plugins": [
+      "semantic-release-gitmoji",
+      [
+        "@semantic-release/exec",
+        {
+          "verifyReleaseCmd": "sh ./.scripts/before-release.sh ${nextRelease.version}"
+        }
+      ],
+      [
+        "@semantic-release/github",
+        {
+          "assets": {
+            "path": "dist/"
+          }
+        }
+      ]
+    ]
+  },
+  "unity": "2018.4"
 }
